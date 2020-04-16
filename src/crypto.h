@@ -3,6 +3,7 @@
 #include <vector>
 #include <sodium.h>
 #include <string>
+#include <iostream>
 
 struct Ed25519
 {
@@ -31,7 +32,7 @@ struct X25519
 
 struct IdentityKey
 {
-    Ed25519 ed25519_keypair;
+   Ed25519 ed25519_keypair;
     X25519 x25519_keypair;
 };
 
@@ -40,6 +41,16 @@ struct SignedPreKey
     Ed25519 ed25519_keypair;
     X25519 x25519_keypair;
     std::vector<unsigned char> signature;
+};
+
+struct DH{
+    std::vector<unsigned char> rx;
+    std::vector<unsigned char> tx;
+
+    void initalize(const X25519 & sender, const X25519 & receiver);
+    void recreate(const X25519 & sender, const X25519 & receiver);
+
+    DH();
 };
 
 class Device;
@@ -53,6 +64,25 @@ struct X3DH
     void recreate(Device * sender, Device * receiver, X25519 & ephemeral);
 
     X3DH();
+};
+
+struct DoubleRatchet
+{
+    std::vector<unsigned char> rx;
+    std::vector<unsigned char> tx;
+
+    X25519 ratchet_keypair;
+
+    DoubleRatchet();
+
+    void initalize(const X3DH & x3dh);
+
+    //for receiver
+    void updateRatchetStep(const X25519 & keys);
+
+    //for sender
+    void initalizeRatchetStep();
+    void finalizeRatchetStep(const X25519 & key);
 };
 
 //(detached mode)

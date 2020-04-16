@@ -1,5 +1,7 @@
 #include "crypto.h"
 #include "device.h"
+#include <memory>
+#include "utils.h"
 
 Ed25519::Ed25519()
 {
@@ -35,73 +37,134 @@ void X25519::derive_from_ed25519(Ed25519 &key)
 
 void X3DH::initiate(Device *sender, Device *receiver, X25519 &ephemeral)
 {
-    //X3DH
-    std::vector<unsigned char> tmp_rx[3];
-    std::vector<unsigned char> tmp_tx[3];
+    std::vector<std::unique_ptr<DH>> dhs;
 
-    for(int i =0; i<3;i++)
+    for(int i =0; i < 3; i++)
     {
-        tmp_rx[i].reserve(crypto_kx_SESSIONKEYBYTES);
-        tmp_rx[i].resize(crypto_kx_SESSIONKEYBYTES);
-        tmp_tx[i].reserve(crypto_kx_SESSIONKEYBYTES);
-        tmp_tx[i].resize(crypto_kx_SESSIONKEYBYTES);
+        dhs.push_back(std::make_unique<DH>());
     }
 
     //DH1 = DH(IKA, SPKB)
-    crypto_kx_client_session_keys(tmp_rx[0].data(), tmp_tx[0].data(), sender->identity_key.x25519_keypair.public_key.data(), sender->identity_key.x25519_keypair.secret_key.data(), receiver->signed_prekey.x25519_keypair.public_key.data());
+    dhs[0]->initalize(sender->identity_key.x25519_keypair, receiver->signed_prekey.x25519_keypair);
     //DH2 = DH(EKA, IKB)
-    crypto_kx_client_session_keys(tmp_rx[1].data(), tmp_tx[1].data(), ephemeral.public_key.data(), ephemeral.secret_key.data(), receiver->identity_key.x25519_keypair.public_key.data());
+    dhs[1]->initalize(ephemeral, receiver->identity_key.x25519_keypair);
     //DH3 = DH(EKA, SPKB)
-    crypto_kx_client_session_keys(tmp_rx[2].data(), tmp_tx[2].data(), ephemeral.public_key.data(), ephemeral.secret_key.data(), receiver->signed_prekey.x25519_keypair.public_key.data());
+    dhs[2]->initalize(ephemeral, receiver->signed_prekey.x25519_keypair);
+
     //SK = KDF(DH1 || DH2 || DH3
-    //instead i will hash all those rx together and tx togheter to derive one rx and tx
-    //for rx
+
+    //derive rx
     crypto_generichash_state state;
-    crypto_generichash_init(&state, tmp_rx[0].data(), tmp_rx[0].size(), rx.size());
-    crypto_generichash_update(&state, tmp_rx[1].data(), tmp_rx[1].size());
-    crypto_generichash_update(&state, tmp_rx[2].data(), tmp_rx[2].size());
+    crypto_generichash_init(&state, dhs[0]->rx.data(), dhs[0]->rx.size(), rx.size());
+    crypto_generichash_init(&state, dhs[1]->rx.data(), dhs[1]->rx.size(), rx.size());
+    crypto_generichash_init(&state, dhs[2]->rx.data(), dhs[2]->rx.size(), rx.size());
     crypto_generichash_final(&state, rx.data(), rx.size());
-    //for tx
-    crypto_generichash_init(&state, tmp_tx[0].data(), tmp_tx[0].size(), tx.size());
-    crypto_generichash_update(&state, tmp_tx[1].data(), tmp_tx[1].size());
-    crypto_generichash_update(&state, tmp_tx[2].data(), tmp_tx[2].size());
+
+    //derive tx
+    crypto_generichash_init(&state, dhs[0]->tx.data(), dhs[0]->tx.size(), tx.size());
+    crypto_generichash_init(&state, dhs[1]->tx.data(), dhs[1]->tx.size(), tx.size());
+    crypto_generichash_init(&state, dhs[2]->tx.data(), dhs[2]->tx.size(), tx.size());
     crypto_generichash_final(&state, tx.data(), tx.size());
 }
 
 void X3DH::recreate(Device *sender, Device *receiver, X25519 &ephemeral)
 {
-    std::vector<unsigned char> tmp_rx[3];
-    std::vector<unsigned char> tmp_tx[3];
+    std::vector<std::unique_ptr<DH>> dhs;
 
-    for(int i =0; i<3;i++)
+    for(int i =0; i < 3; i++)
     {
-        tmp_rx[i].reserve(crypto_kx_SESSIONKEYBYTES);
-        tmp_rx[i].resize(crypto_kx_SESSIONKEYBYTES);
-        tmp_tx[i].reserve(crypto_kx_SESSIONKEYBYTES);
-        tmp_tx[i].resize(crypto_kx_SESSIONKEYBYTES);
+        dhs.push_back(std::make_unique<DH>());
     }
+
     //DH1 = DH(IKA, SPKB)
-    crypto_kx_server_session_keys(tmp_rx[0].data(), tmp_tx[0].data(), receiver->signed_prekey.x25519_keypair.public_key.data(), receiver->signed_prekey.x25519_keypair.secret_key.data(), sender->identity_key.x25519_keypair.public_key.data());
+    dhs[0]->recreate(sender->identity_key.x25519_keypair, receiver->signed_prekey.x25519_keypair);
     //DH2 = DH(EKA, IKB)
-    crypto_kx_server_session_keys(tmp_rx[1].data(), tmp_tx[1].data(), receiver->identity_key.x25519_keypair.public_key.data(), receiver->identity_key.x25519_keypair.secret_key.data(), ephemeral.public_key.data());
+    dhs[1]->recreate(ephemeral, receiver->identity_key.x25519_keypair);
     //DH3 = DH(EKA, SPKB)
-    crypto_kx_server_session_keys(tmp_rx[2].data(), tmp_tx[2].data(), receiver->signed_prekey.x25519_keypair.public_key.data(), receiver->signed_prekey.x25519_keypair.secret_key.data(), ephemeral.public_key.data());
+    dhs[2]->recreate(ephemeral, receiver->signed_prekey.x25519_keypair);
+
     //SK = KDF(DH1 || DH2 || DH3
-    //instead i will hash all those rx together and tx togheter to derive one rx and tx
-    //for rx
+
+    //derive rx
     crypto_generichash_state state;
-    crypto_generichash_init(&state, tmp_rx[0].data(), tmp_rx[0].size(), rx.size());
-    crypto_generichash_update(&state, tmp_rx[1].data(), tmp_rx[1].size());
-    crypto_generichash_update(&state, tmp_rx[2].data(), tmp_rx[2].size());
+    crypto_generichash_init(&state, dhs[0]->rx.data(), dhs[0]->rx.size(), rx.size());
+    crypto_generichash_init(&state, dhs[1]->rx.data(), dhs[1]->rx.size(), rx.size());
+    crypto_generichash_init(&state, dhs[2]->rx.data(), dhs[2]->rx.size(), rx.size());
     crypto_generichash_final(&state, rx.data(), rx.size());
-    //for tx
-    crypto_generichash_init(&state, tmp_tx[0].data(), tmp_tx[0].size(), tx.size());
-    crypto_generichash_update(&state, tmp_tx[1].data(), tmp_tx[1].size());
-    crypto_generichash_update(&state, tmp_tx[2].data(), tmp_tx[2].size());
+
+    //derive tx
+    crypto_generichash_init(&state, dhs[0]->tx.data(), dhs[0]->tx.size(), tx.size());
+    crypto_generichash_init(&state, dhs[1]->tx.data(), dhs[1]->tx.size(), tx.size());
+    crypto_generichash_init(&state, dhs[2]->tx.data(), dhs[2]->tx.size(), tx.size());
     crypto_generichash_final(&state, tx.data(), tx.size());
 }
 
 X3DH::X3DH(){
+    rx.reserve(crypto_kx_SESSIONKEYBYTES);
+    rx.resize(crypto_kx_SESSIONKEYBYTES);
+    tx.reserve(crypto_kx_SESSIONKEYBYTES);
+    tx.resize(crypto_kx_SESSIONKEYBYTES);
+}
+
+DoubleRatchet::DoubleRatchet()
+{
+    rx.reserve(crypto_kx_SESSIONKEYBYTES);
+    rx.resize(crypto_kx_SESSIONKEYBYTES);
+    tx.reserve(crypto_kx_SESSIONKEYBYTES);
+    tx.resize(crypto_kx_SESSIONKEYBYTES);
+
+    ratchet_keypair.generate();
+}
+
+void DoubleRatchet::initalize(const X3DH &x3dh)
+{
+    //initalize chains with shared secret established via X3DH
+    std::copy(x3dh.rx.begin(), x3dh.rx.end(), rx.begin());
+    std::copy(x3dh.tx.begin(), x3dh.tx.end(), tx.begin());
+}
+
+void DoubleRatchet::updateRatchetStep(const X25519 &key)
+{
+    //derive new shared secret
+    std::unique_ptr<DH> dh = std::make_unique<DH>();
+    dh->initalize(ratchet_keypair, key);
+    //update tx chains
+    crypto_generichash_state state;
+    crypto_generichash_init(&state, tx.data(), tx.size(), tx.size());
+    crypto_generichash_update(&state, dh->tx.data(), dh->tx.size());
+    crypto_generichash_final(&state, tx.data(), tx.size());
+}
+
+void DoubleRatchet::initalizeRatchetStep()
+{
+    //generate ratchet keys
+    ratchet_keypair.generate();
+}
+
+void DoubleRatchet::finalizeRatchetStep(const X25519 &key)
+{
+    //derive new shared secret
+    std::unique_ptr<DH> dh = std::make_unique<DH>();
+    dh->recreate(key, ratchet_keypair);
+    //update rx chains
+    crypto_generichash_state state;
+    crypto_generichash_init(&state, rx.data(), rx.size(), rx.size());
+    crypto_generichash_update(&state, dh->rx.data(), dh->rx.size());
+    crypto_generichash_final(&state, rx.data(), rx.size());
+}
+
+void DH::initalize(const X25519 &sender, const X25519 &receiver)
+{
+    crypto_kx_client_session_keys(rx.data(), tx.data(), sender.public_key.data(), sender.secret_key.data(), receiver.public_key.data());
+}
+
+void DH::recreate(const X25519 &sender, const X25519 & receiver)
+{
+    crypto_kx_server_session_keys(rx.data(), tx.data(), receiver.public_key.data(), receiver.secret_key.data(),  sender.public_key.data());
+}
+
+DH::DH()
+{
     rx.reserve(crypto_kx_SESSIONKEYBYTES);
     rx.resize(crypto_kx_SESSIONKEYBYTES);
     tx.reserve(crypto_kx_SESSIONKEYBYTES);
