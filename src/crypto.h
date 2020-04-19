@@ -4,6 +4,12 @@
 #include <sodium.h>
 #include <string>
 #include <iostream>
+#include <map>
+#include <QJsonObject>
+#include <QJsonDocument>
+
+#define BRUV_PUBLIC true
+#define BRUV_PRIVATE false
 
 struct Ed25519
 {
@@ -14,6 +20,9 @@ struct Ed25519
     Ed25519();
 
     void generate();
+
+    QJsonObject toJson(bool is_public);
+    void parseJson(const QJsonDocument & obj);
 };
 
 struct X25519
@@ -28,11 +37,14 @@ struct X25519
 
     //ed25519 -> curve25519
     void derive_from_ed25519(Ed25519 & key);
+
+    QJsonObject toJson(bool is_public);
+    void parseJson(const QJsonDocument & obj);
 };
 
 struct IdentityKey
 {
-   Ed25519 ed25519_keypair;
+    Ed25519 ed25519_keypair;
     X25519 x25519_keypair;
 };
 
@@ -48,7 +60,7 @@ struct DH{
     std::vector<unsigned char> tx;
 
     void initalize(const X25519 & sender, const X25519 & receiver);
-    void recreate(const X25519 & sender, const X25519 & receiver);
+    void sync(const X25519 & sender, const X25519 & receiver);
 
     DH();
 };
@@ -61,31 +73,43 @@ struct X3DH
 
 
     void initiate(Device * sender, Device * receiver, X25519 & ephemeral);
-    void recreate(Device * sender, Device * receiver, X25519 & ephemeral);
+    void sync(Device * sender, Device * receiver, X25519 & ephemeral);
 
     X3DH();
 };
 
-struct DoubleRatchet
+class DoubleRatchet
 {
-    std::vector<unsigned char> rx;
-    std::vector<unsigned char> tx;
-
-    X25519 ratchet_keypair;
-
+public:
+    X25519 self; //  DH Ratchet key pair (the "sending" or "self" ratchet key)
+    X25519 remote; //  DH Ratchet public key (the "received" or "remote" key)
+    //32-byte Chain Keys for sending and receiving
+    std::vector<unsigned char> rx_chainkey;
+    std::vector<unsigned char> tx_chainkey;
+    //Ns, Nr: Message numbers for sending and receiving
+    long long rx_counter;
+    long long tx_counter;
+    //PN: Number of messages in previous sending chain
+    long long tx_previous;
+    //MKSKIPPED: Dictionary of skipped-over message keys, indexed by ratchet public key and message number. Raises an exception if too many elements are stored.
+    std::map<std::pair<std::vector<unsigned char>, long long>, std::vector<unsigned char>> skipped_messages_keys;
+public:
+    //init functions
     DoubleRatchet();
-
     void initalize(const X3DH & x3dh);
-
-    //for receiver
-    void updateRatchetStep(const X25519 & keys);
-
-    //for sender
-    void initalizeRatchetStep();
-    void finalizeRatchetStep(const X25519 & key);
+    void sync(const X3DH & x3dh, const X25519 & new_remote);
+public:
+    QJsonObject encrypt(const std::string & plaintext);
+    std::vector<unsigned char> decrypt(const QJsonDocument & encrypted);
+private:
+    QJsonObject header(const std::vector<unsigned char> & nonce);
+private:
+    std::vector<unsigned char> get_message_key(const QJsonDocument & ad);
+    void skip_message(long long until);
+    void dhratchet(const X25519 & new_remote);
 };
 
-//(detached mode)
+//deatached mode
 static std::vector<unsigned char> create_signature(Ed25519 & key, std::vector<unsigned char> & data)
 {
     std::vector<unsigned char> sig;

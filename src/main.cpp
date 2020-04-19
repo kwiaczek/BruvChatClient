@@ -16,6 +16,12 @@ int main(int argc, char *argv[])
         return -1;
     }
 
+    if(crypto_aead_aes256gcm_is_available() == 0)
+    {
+        std::cerr << "AES GCM NOT SUPPORTED!" << std::endl;
+        return -1;
+    }
+
     User * alice = new User();
     User * bob = new User();
 
@@ -30,46 +36,30 @@ int main(int argc, char *argv[])
     X3DH  bob_x3dh;
 
     alice_x3dh.initiate(alice->devices[0], alice->devices[0]->correspondents[0]->devices[0], ephemeral);
-    bob_x3dh.recreate(bob->devices[0]->correspondents[0]->devices[0], bob->devices[0], ephemeral);
+    bob_x3dh.sync(bob->devices[0]->correspondents[0]->devices[0], bob->devices[0], ephemeral);
 
-    DoubleRatchet * double_ratchet_alice = new DoubleRatchet();
-    double_ratchet_alice->initalize(alice_x3dh);
+    DoubleRatchet * alice_ratchet = new DoubleRatchet();
+    DoubleRatchet * bob_ratchet = new DoubleRatchet();
+    bob_ratchet->initalize(bob_x3dh);
 
+    QJsonObject msg_bob = bob_ratchet->encrypt("hello there, my guy!");
+    QJsonObject msg_bob2 = bob_ratchet->encrypt("hello there, my guy!");
+    std::cout << QJsonDocument(msg_bob).toJson().toStdString() << std::endl;
+    std::cout << QJsonDocument(msg_bob2).toJson().toStdString() << std::endl;
 
-    DoubleRatchet * double_ratchet_bob = new DoubleRatchet();
-    double_ratchet_bob->initalize(bob_x3dh);
+    alice_ratchet->sync(alice_x3dh, bob_ratchet->self);
+    auto decrypted = alice_ratchet->decrypt(QJsonDocument(msg_bob));
+    auto decrypted2 = alice_ratchet->decrypt(QJsonDocument(msg_bob2));
+    std::cout << std::string(decrypted.begin(), decrypted.end()) << std::endl;
+    std::cout << std::string(decrypted2.begin(), decrypted2.end()) << std::endl;
 
-    std::cout << "ALICE PERFORM" << std::endl;
-    double_ratchet_alice->initalizeRatchetStep();
-    std::cout << "Alice's keys" << std::endl;
-    printVecBase64(double_ratchet_alice->rx);
-    printVecBase64(double_ratchet_alice->tx);
-    std::cout << "BOB's keys" << std::endl;
-    printVecBase64(double_ratchet_bob->rx);
-    printVecBase64(double_ratchet_bob->tx);
-    std::cout << "#######################" << std::endl;
+    QJsonObject msg_alice = alice_ratchet->encrypt("hello there, my guy!");
+    QJsonObject msg_alice2 = alice_ratchet->encrypt("hello there, my guy!");
 
-    std::cout << "BOB UPDATE" << std::endl;
-    double_ratchet_bob->updateRatchetStep(double_ratchet_alice->ratchet_keypair);
-
-    std::cout << "Alice's keys" << std::endl;
-    printVecBase64(double_ratchet_alice->rx);
-    printVecBase64(double_ratchet_alice->tx);
-    std::cout << "BOB's keys" << std::endl;
-    printVecBase64(double_ratchet_bob->rx);
-    printVecBase64(double_ratchet_bob->tx);
-
-    std::cout << "#######################" << std::endl;
-    std::cout << "ALICE FINALIZE" << std::endl;
-    double_ratchet_alice->finalizeRatchetStep(double_ratchet_bob->ratchet_keypair);
-
-
-    std::cout << "Alice's keys" << std::endl;
-    printVecBase64(double_ratchet_alice->rx);
-    printVecBase64(double_ratchet_alice->tx);
-    std::cout << "BOB's keys" << std::endl;
-    printVecBase64(double_ratchet_bob->rx);
-    printVecBase64(double_ratchet_bob->tx);
+    auto decrypted3 = bob_ratchet->decrypt(QJsonDocument(msg_alice));
+    auto decrypted4 = bob_ratchet->decrypt(QJsonDocument(msg_alice2));
+    std::cout << std::string(decrypted3.begin(), decrypted3.end()) << std::endl;
+    std::cout << std::string(decrypted4.begin(), decrypted4.end()) << std::endl;
 
     return 0;
 }
