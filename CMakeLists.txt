@@ -35,6 +35,8 @@ src/x25519.h
 src/x25519.cpp
 src/ed25519.h
 src/ed25519.cpp
+src/message.h
+src/message.cpp
 )
 
 target_link_libraries(BruvChatClient2 PRIVATE Qt5::Widgets Qt5::WebSockets libsodium)

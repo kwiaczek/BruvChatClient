@@ -138,8 +138,10 @@ void DoubleRatchet::sync(const X3DH &x3dh, const X25519 &new_remote)
     crypto_generichash_final(&state, tx_chainkey.data(), tx_chainkey.size());
 }
 
-QJsonObject DoubleRatchet::encrypt(const std::string &plaintext)
+EncryptedMessage DoubleRatchet::encrypt(const std::string &plaintext)
 {
+    EncryptedMessage encrypted_message;
+
    //message key
    std::vector<unsigned char> mk;
    mk.reserve(crypto_aead_aes256gcm_KEYBYTES);
@@ -150,55 +152,52 @@ QJsonObject DoubleRatchet::encrypt(const std::string &plaintext)
    nonce.reserve(crypto_aead_aes256gcm_NPUBBYTES);
    nonce.resize(crypto_aead_aes256gcm_NPUBBYTES);
    randombytes_buf(nonce.data(), nonce.size());
-   //create header -AD
-   QJsonObject h = header(nonce);
-   //ciphertext
-   std::vector<unsigned char> ciphertext;
-   ciphertext.reserve(plaintext.size() + crypto_aead_aes256gcm_ABYTES);
-   ciphertext.resize(plaintext.size() + crypto_aead_aes256gcm_ABYTES);
-   crypto_aead_aes256gcm_encrypt(ciphertext.data(), nullptr, (unsigned char *) plaintext.c_str(), plaintext.size(), (unsigned char *)QJsonDocument(h).toJson().toStdString().c_str(), QJsonDocument(h).toJson().toStdString().size(), NULL, nonce.data(), mk.data());
+   //create header
+   encrypted_message.header = header(nonce);
+   encrypted_message.ciphertext.reserve(plaintext.size() + crypto_aead_aes256gcm_ABYTES);
+   encrypted_message.ciphertext.resize(plaintext.size() + crypto_aead_aes256gcm_ABYTES);
 
-   QJsonObject encrypted_message;
-   encrypted_message.insert("ciphertext", bytesToBase64qstring(ciphertext));
-   encrypted_message.insert("header", h);
+   crypto_aead_aes256gcm_encrypt(encrypted_message.ciphertext.data(), nullptr, (unsigned char *) plaintext.c_str(), plaintext.size(), encrypted_message.header.toJsonBytes().data(), encrypted_message.header.toJsonBytes().size(), NULL, nonce.data(), mk.data());
 
    tx_counter++;
+
    return encrypted_message;
 }
 
-std::vector<unsigned char> DoubleRatchet::decrypt(const QJsonDocument &encrypted)
+DecryptedMessage DoubleRatchet::decrypt(EncryptedMessage encrypted)
 {
-    QJsonObject ad = encrypted["header"].toObject();
-    std::vector<unsigned char> mk = get_message_key(QJsonDocument(ad));
-    std::vector<unsigned char> nonce = base64QStringToBytes(ad["nonce"].toString());
-    std::vector<unsigned char> ciphertext = base64QStringToBytes(encrypted["ciphertext"].toString());
-    std::vector<unsigned char> plaintext;
-    plaintext.reserve(ciphertext.size() - crypto_aead_aes256gcm_ABYTES );
-    plaintext.resize(ciphertext.size() - crypto_aead_aes256gcm_ABYTES );
+    std::vector<unsigned char> mk = get_message_key(encrypted.header);
+    std::vector<unsigned char> nonce = encrypted.header.nonce;
+    std::vector<unsigned char> ciphertext =encrypted.ciphertext;
 
-    if(ciphertext.size() <crypto_aead_aes256gcm_ABYTES || (crypto_aead_aes256gcm_decrypt(plaintext.data(), nullptr, NULL, ciphertext.data(), ciphertext.size(), (unsigned char *)QJsonDocument(ad).toJson().toStdString().c_str(), QJsonDocument(ad).toJson().toStdString().size(), nonce.data(), mk.data()) != 0) )
+    DecryptedMessage decrypted_message;
+    decrypted_message.plaintext.reserve(ciphertext.size() - crypto_aead_aes256gcm_ABYTES);
+    decrypted_message.plaintext.resize(ciphertext.size() - crypto_aead_aes256gcm_ABYTES);
+
+    if(ciphertext.size() < crypto_aead_aes256gcm_ABYTES || (crypto_aead_aes256gcm_decrypt(decrypted_message.plaintext.data(), nullptr, NULL, ciphertext.data(), ciphertext.size(), encrypted.header.toJsonBytes().data(), encrypted.header.toJsonBytes().size(), nonce.data(), mk.data()) != 0))
     {
-        std::cerr <<"error!" << std::endl;
+        std::cerr << "error!!" << std::endl;
     }
-    return plaintext;
+
+    return decrypted_message;
 }
 
-QJsonObject DoubleRatchet::header(const std::vector<unsigned char> &nonce)
+
+MessageHeader DoubleRatchet::header(const std::vector<unsigned char> &nonce)
 {
-    QJsonObject h;
-    h.insert("tx_counter", tx_counter);
-    h.insert("tx_previous", tx_previous);
-    h.insert("nonce", bytesToBase64qstring(nonce));
-    h.insert("self", self.toJson(X25519_PUBLIC));
+    MessageHeader h;
+    h.nonce = nonce;
+    h.self = self;
+    h.tx_counter = tx_counter;
+    h.tx_previous = tx_previous;
     return h;
 }
 
-std::vector<unsigned char> DoubleRatchet::get_message_key(const QJsonDocument &ad)
+std::vector<unsigned char> DoubleRatchet::get_message_key(MessageHeader h)
 {
-    X25519 send_remote_key;
-    send_remote_key.parseJson(QJsonDocument(ad["self"].toObject()));
-    long long n = ad["tx_counter"].toInt();
-    long long pn = ad["tx_previous"].toInt();
+    X25519 send_remote_key = h.self;
+    long long n = h.tx_counter;
+    long long pn = h.tx_previous;
 
     auto index = skipped_messages_keys.find(std::make_pair(send_remote_key.public_key, n));
     if(index != skipped_messages_keys.end())

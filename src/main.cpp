@@ -5,7 +5,7 @@
 #include "user.h"
 #include "utils.h"
 #include "crypto.h"
-
+#include "message.h"
 int main(int argc, char *argv[])
 {
 
@@ -42,6 +42,22 @@ int main(int argc, char *argv[])
     DoubleRatchet * bob_ratchet = new DoubleRatchet();
     bob_ratchet->initalize(bob_x3dh);
     alice_ratchet->sync(alice_x3dh, bob_ratchet->self);
+
+    EncryptedMessage bob_msg_1 = bob_ratchet->encrypt("Czesc, jestem kacper!");
+    EncryptedMessage bob_msg_2 = bob_ratchet->encrypt("Czesc, jestem michal!");
+    EncryptedMessage bob_msg_3 = bob_ratchet->encrypt("Czesc, jestem zofia!");
+    DecryptedMessage decrypted_bob_msg_3 = alice_ratchet->decrypt(bob_msg_3);
+    DecryptedMessage decrypted_bob_msg_2 = alice_ratchet->decrypt(bob_msg_2);
+    DecryptedMessage decrypted_bob_msg_1 = alice_ratchet->decrypt(bob_msg_1);
+    EncryptedMessage alice_msg_1 = alice_ratchet->encrypt("Czesc, jestem kacper!");
+    EncryptedMessage alice_msg_2 = alice_ratchet->encrypt("Czesc, jestem michal!");
+    EncryptedMessage alice_msg_3 = alice_ratchet->encrypt("Czesc, jestem zofia!");
+    DecryptedMessage decrypted_alice_msg_3 = bob_ratchet->decrypt(alice_msg_3);
+    DecryptedMessage decrypted_alice_msg_2 = bob_ratchet->decrypt(alice_msg_2);
+    DecryptedMessage decrypted_alice_msg_1 = bob_ratchet->decrypt(alice_msg_1);
+    std::cout << decrypted_alice_msg_1.getString() << std::endl;
+    std::cout << decrypted_alice_msg_2.getString() << std::endl;
+    std::cout << decrypted_alice_msg_3.getString() << std::endl;
 
     return 0;
 }

@@ -9,6 +9,7 @@
 #include <QJsonDocument>
 #include "x25519.h"
 #include "ed25519.h"
+#include "message.h"
 
 struct IdentityKey
 {
@@ -67,12 +68,12 @@ public:
     void initalize(const X3DH & x3dh);
     void sync(const X3DH & x3dh, const X25519 & new_remote);
 public:
-    QJsonObject encrypt(const std::string & plaintext);
-    std::vector<unsigned char> decrypt(const QJsonDocument & encrypted);
+    EncryptedMessage encrypt(const std::string & plaintext);
+    DecryptedMessage decrypt(EncryptedMessage  encrypted);
 private:
-    QJsonObject header(const std::vector<unsigned char> & nonce);
+    MessageHeader header(const std::vector<unsigned char> & nonce);
 private:
-    std::vector<unsigned char> get_message_key(const QJsonDocument & ad);
+    std::vector<unsigned char> get_message_key(MessageHeader  ad);
     void skip_message(long long until);
     void dhratchet(const X25519 & new_remote);
 };
