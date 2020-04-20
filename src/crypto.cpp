@@ -6,91 +6,6 @@
 // todo: choose correct value
 #define MAX_SKIP 9999999
 
-Ed25519::Ed25519()
-{
-    public_key.reserve(crypto_sign_PUBLICKEYBYTES);
-    public_key.resize(crypto_sign_PUBLICKEYBYTES);
-    secret_key.reserve(crypto_sign_SECRETKEYBYTES);
-    secret_key.resize(crypto_sign_SECRETKEYBYTES);
-}
-
-void Ed25519::generate()
-{
-    crypto_sign_keypair(public_key.data(), secret_key.data());
-}
-
-QJsonObject Ed25519::toJson(bool is_public)
-{
-    QJsonObject tmp;
-    tmp.insert("is_public", is_public);
-    tmp.insert("public", bytesToBase64qstring(public_key));
-
-    if(is_public == BRUV_PRIVATE)
-    {
-        tmp.insert("private", bytesToBase64qstring(secret_key));
-    }
-    return tmp;
-}
-
-void Ed25519::parseJson(const QJsonDocument &obj)
-{
-    bool is_public = (bool)obj["is_public"].toBool();
-
-    std::vector<unsigned char> json_pub = base64QStringToBytes(obj["public"].toString());
-    std::copy(json_pub.begin(), json_pub.end(), public_key.begin());
-
-    if(is_public == BRUV_PRIVATE)
-    {
-        std::vector<unsigned char> json_prv = base64QStringToBytes(obj["private"].toString());
-        std::copy(json_prv.begin(), json_prv.end(), secret_key.begin());
-    }
-}
-X25519::X25519()
-{
-    public_key.reserve(crypto_box_PUBLICKEYBYTES);
-    public_key.resize(crypto_box_PUBLICKEYBYTES);
-    secret_key.reserve(crypto_box_SECRETKEYBYTES);
-    secret_key.resize(crypto_box_SECRETKEYBYTES);
-}
-
-void X25519::generate()
-{
-    crypto_box_keypair(public_key.data(), secret_key.data());
-}
-
-void X25519::derive_from_ed25519(Ed25519 &key)
-{
-    crypto_sign_ed25519_pk_to_curve25519(public_key.data(), key.public_key.data());
-    crypto_sign_ed25519_sk_to_curve25519(secret_key.data(), key.secret_key.data());
-}
-
-QJsonObject X25519::toJson(bool is_public)
-{
-    QJsonObject tmp;
-    tmp.insert("is_public", is_public);
-    tmp.insert("public", bytesToBase64qstring(public_key));
-
-    if(is_public == BRUV_PRIVATE)
-    {
-        tmp.insert("private", bytesToBase64qstring(secret_key));
-    }
-    return tmp;
-}
-
-void X25519::parseJson(const QJsonDocument &obj)
-{
-    bool is_public = (bool)obj["is_public"].toBool();
-
-    std::vector<unsigned char> json_pub = base64QStringToBytes(obj["public"].toString());
-    std::copy(json_pub.begin(), json_pub.end(), public_key.begin());
-
-    if(is_public == BRUV_PRIVATE)
-    {
-        std::vector<unsigned char> json_prv = base64QStringToBytes(obj["private"].toString());
-        std::copy(json_prv.begin(), json_prv.end(), secret_key.begin());
-    }
-}
-
 void X3DH::initiate(Device *sender, Device *receiver, X25519 &ephemeral)
 {
     std::vector<std::unique_ptr<DH>> dhs;
@@ -274,7 +189,7 @@ QJsonObject DoubleRatchet::header(const std::vector<unsigned char> &nonce)
     h.insert("tx_counter", tx_counter);
     h.insert("tx_previous", tx_previous);
     h.insert("nonce", bytesToBase64qstring(nonce));
-    h.insert("self", self.toJson(BRUV_PUBLIC));
+    h.insert("self", self.toJson(X25519_PUBLIC));
     return h;
 }
 

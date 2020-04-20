@@ -7,40 +7,8 @@
 #include <map>
 #include <QJsonObject>
 #include <QJsonDocument>
-
-#define BRUV_PUBLIC true
-#define BRUV_PRIVATE false
-
-struct Ed25519
-{
-//used for signatures
-    std::vector<unsigned char> public_key;
-    std::vector<unsigned char> secret_key;
-
-    Ed25519();
-
-    void generate();
-
-    QJsonObject toJson(bool is_public);
-    void parseJson(const QJsonDocument & obj);
-};
-
-struct X25519
-{
-    //used for AEAD
-    std::vector<unsigned char> public_key;
-    std::vector<unsigned char> secret_key;
-
-    X25519();
-
-    void generate();
-
-    //ed25519 -> curve25519
-    void derive_from_ed25519(Ed25519 & key);
-
-    QJsonObject toJson(bool is_public);
-    void parseJson(const QJsonDocument & obj);
-};
+#include "x25519.h"
+#include "ed25519.h"
 
 struct IdentityKey
 {

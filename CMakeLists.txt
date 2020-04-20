@@ -31,6 +31,10 @@ src/device.cpp
 src/session.h
 src/session.cpp
 src/utils.h
+src/x25519.h
+src/x25519.cpp
+src/ed25519.h
+src/ed25519.cpp
 )
 
 target_link_libraries(BruvChatClient2 PRIVATE Qt5::Widgets Qt5::WebSockets libsodium)

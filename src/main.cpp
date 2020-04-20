@@ -41,25 +41,7 @@ int main(int argc, char *argv[])
     DoubleRatchet * alice_ratchet = new DoubleRatchet();
     DoubleRatchet * bob_ratchet = new DoubleRatchet();
     bob_ratchet->initalize(bob_x3dh);
-
-    QJsonObject msg_bob = bob_ratchet->encrypt("hello there, my guy!");
-    QJsonObject msg_bob2 = bob_ratchet->encrypt("hello there, my guy!");
-    std::cout << QJsonDocument(msg_bob).toJson().toStdString() << std::endl;
-    std::cout << QJsonDocument(msg_bob2).toJson().toStdString() << std::endl;
-
     alice_ratchet->sync(alice_x3dh, bob_ratchet->self);
-    auto decrypted = alice_ratchet->decrypt(QJsonDocument(msg_bob));
-    auto decrypted2 = alice_ratchet->decrypt(QJsonDocument(msg_bob2));
-    std::cout << std::string(decrypted.begin(), decrypted.end()) << std::endl;
-    std::cout << std::string(decrypted2.begin(), decrypted2.end()) << std::endl;
-
-    QJsonObject msg_alice = alice_ratchet->encrypt("hello there, my guy!");
-    QJsonObject msg_alice2 = alice_ratchet->encrypt("hello there, my guy!");
-
-    auto decrypted3 = bob_ratchet->decrypt(QJsonDocument(msg_alice));
-    auto decrypted4 = bob_ratchet->decrypt(QJsonDocument(msg_alice2));
-    std::cout << std::string(decrypted3.begin(), decrypted3.end()) << std::endl;
-    std::cout << std::string(decrypted4.begin(), decrypted4.end()) << std::endl;
 
     return 0;
 }
