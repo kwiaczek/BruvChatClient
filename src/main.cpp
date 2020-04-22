@@ -26,38 +26,24 @@ int main(int argc, char *argv[])
     User * bob = new User();
 
     alice->devices[0]->correspondents[0] = bob;
+    alice->devices[0]->correspondents[0]->devices[0] = bob->devices[0];
+    alice->devices[0]->correspondents[0]->devices[0]->sessions[0] = new Session();
+    alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet = new DoubleRatchet(alice->devices[0], bob->devices[0]);
+
     bob->devices[0]->correspondents[0] = alice;
+    bob->devices[0]->correspondents[0]->devices[0] = alice->devices[0];
+    bob->devices[0]->correspondents[0]->devices[0]->sessions[0] = new Session();
+    bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet = new DoubleRatchet(bob->devices[0], alice->devices[0]);
 
-
-    X25519 ephemeral;
-    ephemeral.generate();
-
-    X3DH  alice_x3dh;
-    X3DH  bob_x3dh;
-
-    alice_x3dh.initiate(alice->devices[0], alice->devices[0]->correspondents[0]->devices[0], ephemeral);
-    bob_x3dh.sync(bob->devices[0]->correspondents[0]->devices[0], bob->devices[0], ephemeral);
-
-    DoubleRatchet * alice_ratchet = new DoubleRatchet();
-    DoubleRatchet * bob_ratchet = new DoubleRatchet();
-    bob_ratchet->initalize(bob_x3dh);
-    alice_ratchet->sync(alice_x3dh, bob_ratchet->self);
-
-    EncryptedMessage bob_msg_1 = bob_ratchet->encrypt("Czesc, jestem kacper!");
-    EncryptedMessage bob_msg_2 = bob_ratchet->encrypt("Czesc, jestem michal!");
-    EncryptedMessage bob_msg_3 = bob_ratchet->encrypt("Czesc, jestem zofia!");
-    DecryptedMessage decrypted_bob_msg_3 = alice_ratchet->decrypt(bob_msg_3);
-    DecryptedMessage decrypted_bob_msg_2 = alice_ratchet->decrypt(bob_msg_2);
-    DecryptedMessage decrypted_bob_msg_1 = alice_ratchet->decrypt(bob_msg_1);
-    EncryptedMessage alice_msg_1 = alice_ratchet->encrypt("Czesc, jestem kacper!");
-    EncryptedMessage alice_msg_2 = alice_ratchet->encrypt("Czesc, jestem michal!");
-    EncryptedMessage alice_msg_3 = alice_ratchet->encrypt("Czesc, jestem zofia!");
-    DecryptedMessage decrypted_alice_msg_3 = bob_ratchet->decrypt(alice_msg_3);
-    DecryptedMessage decrypted_alice_msg_2 = bob_ratchet->decrypt(alice_msg_2);
-    DecryptedMessage decrypted_alice_msg_1 = bob_ratchet->decrypt(alice_msg_1);
-    std::cout << decrypted_alice_msg_1.getString() << std::endl;
-    std::cout << decrypted_alice_msg_2.getString() << std::endl;
-    std::cout << decrypted_alice_msg_3.getString() << std::endl;
+    EncryptedMessage x = alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->encrypt("plaintext");
+    EncryptedMessage y = alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->encrypt("plaintext");
+    EncryptedMessage z = alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->encrypt("plaintext");
+    DecryptedMessage w = bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->decrypt(x);
+    DecryptedMessage s = bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->decrypt(y);
+    DecryptedMessage v = bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->decrypt(z);
+    std::cout << w.getString() << std::endl;
+    std::cout << s.getString() << std::endl;
+    std::cout << v.getString() << std::endl;
 
     return 0;
 }

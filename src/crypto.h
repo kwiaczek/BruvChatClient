@@ -39,10 +39,10 @@ struct X3DH
 {
     std::vector<unsigned char> rx;
     std::vector<unsigned char> tx;
+    X25519 ephemeral;
 
-
-    void initiate(Device * sender, Device * receiver, X25519 & ephemeral);
-    void sync(Device * sender, Device * receiver, X25519 & ephemeral);
+    void initiate(Device * sender, Device * receiver);
+    void sync(Device * sender, Device * receiver);
 
     X3DH();
 };
@@ -62,11 +62,15 @@ public:
     long long tx_previous;
     //MKSKIPPED: Dictionary of skipped-over message keys, indexed by ratchet public key and message number. Raises an exception if too many elements are stored.
     std::map<std::pair<std::vector<unsigned char>, long long>, std::vector<unsigned char>> skipped_messages_keys;
+    X3DH * x3dh;
+
+    Device * self_device;
+    Device * remote_device;
 public:
     //init functions
-    DoubleRatchet();
-    void initalize(const X3DH & x3dh);
-    void sync(const X3DH & x3dh, const X25519 & new_remote);
+    DoubleRatchet(Device * self_, Device * remote_);
+    void initalize();
+    void sync(MessageHeader header);
 public:
     EncryptedMessage encrypt(const std::string & plaintext);
     DecryptedMessage decrypt(EncryptedMessage  encrypted);

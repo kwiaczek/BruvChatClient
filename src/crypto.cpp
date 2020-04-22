@@ -6,7 +6,7 @@
 // todo: choose correct value
 #define MAX_SKIP 9999999
 
-void X3DH::initiate(Device *sender, Device *receiver, X25519 &ephemeral)
+void X3DH::initiate(Device *sender, Device *receiver)
 {
     std::vector<std::unique_ptr<DH>> dhs;
 
@@ -38,7 +38,7 @@ void X3DH::initiate(Device *sender, Device *receiver, X25519 &ephemeral)
     crypto_generichash_final(&state, tx.data(), tx.size());
 }
 
-void X3DH::sync(Device *sender, Device *receiver, X25519 &ephemeral)
+void X3DH::sync(Device *sender, Device *receiver)
 {
     std::vector<std::unique_ptr<DH>> dhs;
 
@@ -94,8 +94,11 @@ DH::DH()
     tx.resize(crypto_kx_SESSIONKEYBYTES);
 }
 
-DoubleRatchet::DoubleRatchet()
+DoubleRatchet::DoubleRatchet(Device * self_, Device * remote_)
 {
+    self_device = self_;
+    remote_device = remote_;
+
     rx_chainkey.reserve(crypto_kx_SESSIONKEYBYTES);
     rx_chainkey.resize(crypto_kx_SESSIONKEYBYTES);
     tx_chainkey.reserve(crypto_kx_SESSIONKEYBYTES);
@@ -110,25 +113,33 @@ DoubleRatchet::DoubleRatchet()
     rx_counter = 0;
 }
 
-void DoubleRatchet::initalize(const X3DH &x3dh)
+void DoubleRatchet::initalize()
 {
+    x3dh = new X3DH();
+    x3dh->ephemeral.generate();
+    x3dh->initiate(self_device, remote_device);
+
     //initalize with x3dh
-    std::copy(x3dh.rx.begin(), x3dh.rx.end(), rx_chainkey.begin());
-    std::copy(x3dh.tx.begin(), x3dh.tx.end(), tx_chainkey.begin());
+    std::copy(x3dh->rx.begin(), x3dh->rx.end(), rx_chainkey.begin());
+    std::copy(x3dh->tx.begin(), x3dh->tx.end(), tx_chainkey.begin());
     //state.DHs = bob_dh_key_pair
     self.generate();
 }
 
-void DoubleRatchet::sync(const X3DH &x3dh, const X25519 &new_remote)
+void DoubleRatchet::sync(MessageHeader header)
 {
+    x3dh = new X3DH();
+    x3dh->ephemeral = header.ephemeral;
+    x3dh->sync( remote_device, self_device);
+
     //initalize with x3dh
-    std::copy(x3dh.rx.begin(), x3dh.rx.end(), rx_chainkey.begin());
-    std::copy(x3dh.tx.begin(), x3dh.tx.end(), tx_chainkey.begin());
+    std::copy(x3dh->rx.begin(), x3dh->rx.end(), rx_chainkey.begin());
+    std::copy(x3dh->tx.begin(), x3dh->tx.end(), tx_chainkey.begin());
 
     //state.DHs = GENERATE_DH()
     self.generate();
     //state.DHr = bob_dh_public_key
-    remote = new_remote;
+    remote = header.self;
     //state.RK, state.CKs = KDF_RK(SK, DH(state.DHs, state.DHr))
     std::unique_ptr<DH> dh = std::make_unique<DH>();
     dh->initalize(self, remote);
@@ -140,6 +151,11 @@ void DoubleRatchet::sync(const X3DH &x3dh, const X25519 &new_remote)
 
 EncryptedMessage DoubleRatchet::encrypt(const std::string &plaintext)
 {
+    if(x3dh == nullptr)
+    {
+        initalize();
+    }
+
     EncryptedMessage encrypted_message;
 
    //message key
@@ -166,6 +182,11 @@ EncryptedMessage DoubleRatchet::encrypt(const std::string &plaintext)
 
 DecryptedMessage DoubleRatchet::decrypt(EncryptedMessage encrypted)
 {
+    if(x3dh == nullptr)
+    {
+        sync(encrypted.header);
+    }
+
     std::vector<unsigned char> mk = get_message_key(encrypted.header);
     std::vector<unsigned char> nonce = encrypted.header.nonce;
     std::vector<unsigned char> ciphertext =encrypted.ciphertext;
@@ -190,6 +211,7 @@ MessageHeader DoubleRatchet::header(const std::vector<unsigned char> &nonce)
     h.self = self;
     h.tx_counter = tx_counter;
     h.tx_previous = tx_previous;
+    h.ephemeral = x3dh->ephemeral;
     return h;
 }
 

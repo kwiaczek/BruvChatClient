@@ -5,10 +5,13 @@
 
 class MessageHeader{
 public:
+    //double ratchet
     X25519 self;
     long long tx_counter;
     long long tx_previous;
     std::vector<unsigned char> nonce;
+    //X3DH
+    X25519 ephemeral;
 
     void parseJson(const QJsonDocument & header_json);
     QJsonObject toJson();

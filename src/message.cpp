@@ -4,6 +4,7 @@
 void MessageHeader::parseJson(const QJsonDocument &header_json)
 {
     self.parseJson(QJsonDocument(header_json["self"].toObject()));
+    ephemeral.parseJson(QJsonDocument(header_json["ephemeral"].toObject()));
     tx_counter = header_json["tx_counter"].toInt();
     tx_previous = header_json["tx_previous"].toInt();
     nonce = base64QStringToBytes(header_json["nonce"].toString());
@@ -16,6 +17,7 @@ QJsonObject MessageHeader::toJson()
     h.insert("tx_previous", tx_previous);
     h.insert("nonce", bytesToBase64qstring(nonce));
     h.insert("self", self.toJson(X25519_PUBLIC));
+    h.insert("ephemeral", ephemeral.toJson(X25519_PUBLIC));
     return h;
 }
 
