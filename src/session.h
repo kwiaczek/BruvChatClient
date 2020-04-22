@@ -14,6 +14,9 @@ public:
     DoubleRatchet * double_ratchet;
 
     Session();
+
+    void createSession(Device * sender, Device * receiver);
+    void recreateSession(Device * sender, Device * receiver);
 };
 
 #endif

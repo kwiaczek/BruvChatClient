@@ -94,10 +94,8 @@ DH::DH()
     tx.resize(crypto_kx_SESSIONKEYBYTES);
 }
 
-DoubleRatchet::DoubleRatchet(Device * self_, Device * remote_)
+DoubleRatchet::DoubleRatchet()
 {
-    self_device = self_;
-    remote_device = remote_;
 
     rx_chainkey.reserve(crypto_kx_SESSIONKEYBYTES);
     rx_chainkey.resize(crypto_kx_SESSIONKEYBYTES);
@@ -117,7 +115,7 @@ void DoubleRatchet::initalize()
 {
     x3dh = new X3DH();
     x3dh->ephemeral.generate();
-    x3dh->initiate(self_device, remote_device);
+    x3dh->initiate(init_device, sync_device);
 
     //initalize with x3dh
     std::copy(x3dh->rx.begin(), x3dh->rx.end(), rx_chainkey.begin());
@@ -130,7 +128,7 @@ void DoubleRatchet::sync(MessageHeader header)
 {
     x3dh = new X3DH();
     x3dh->ephemeral = header.ephemeral;
-    x3dh->sync( remote_device, self_device);
+    x3dh->sync(sync_device, init_device);
 
     //initalize with x3dh
     std::copy(x3dh->rx.begin(), x3dh->rx.end(), rx_chainkey.begin());

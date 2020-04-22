@@ -28,12 +28,12 @@ int main(int argc, char *argv[])
     alice->devices[0]->correspondents[0] = bob;
     alice->devices[0]->correspondents[0]->devices[0] = bob->devices[0];
     alice->devices[0]->correspondents[0]->devices[0]->sessions[0] = new Session();
-    alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet = new DoubleRatchet(alice->devices[0], bob->devices[0]);
+    alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->createSession(alice->devices[0], bob->devices[0]);
 
     bob->devices[0]->correspondents[0] = alice;
     bob->devices[0]->correspondents[0]->devices[0] = alice->devices[0];
     bob->devices[0]->correspondents[0]->devices[0]->sessions[0] = new Session();
-    bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet = new DoubleRatchet(bob->devices[0], alice->devices[0]);
+    bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->createSession(bob->devices[0], alice->devices[0]);
 
     EncryptedMessage x = alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->encrypt("plaintext");
     EncryptedMessage y = alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->encrypt("plaintext");
@@ -41,6 +41,12 @@ int main(int argc, char *argv[])
     DecryptedMessage w = bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->decrypt(x);
     DecryptedMessage s = bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->decrypt(y);
     DecryptedMessage v = bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->decrypt(z);
+    EncryptedMessage x1 = alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->encrypt("plaintext");
+    EncryptedMessage y1 = alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->encrypt("plaintext");
+    EncryptedMessage z1 = alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->encrypt("plaintext");
+    DecryptedMessage s1 = bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->decrypt(y1);
+    DecryptedMessage v1 = bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->decrypt(z1);
+    DecryptedMessage w1 = bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->decrypt(x1);
     std::cout << w.getString() << std::endl;
     std::cout << s.getString() << std::endl;
     std::cout << v.getString() << std::endl;

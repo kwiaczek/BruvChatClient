@@ -64,11 +64,11 @@ public:
     std::map<std::pair<std::vector<unsigned char>, long long>, std::vector<unsigned char>> skipped_messages_keys;
     X3DH * x3dh;
 
-    Device * self_device;
-    Device * remote_device;
+    Device * init_device;
+    Device * sync_device;
 public:
     //init functions
-    DoubleRatchet(Device * self_, Device * remote_);
+    DoubleRatchet();
     void initalize();
     void sync(MessageHeader header);
 public:
