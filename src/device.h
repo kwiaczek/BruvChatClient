@@ -15,11 +15,21 @@ public:
     std::map<long long int, User*> correspondents;
     //There is some SessionID which uniquely identifies each session
     std::map<long long int, Session*> sessions;
+    long long current_session_id;
 
     IdentityKey identity_key;
     SignedPreKey signed_prekey;
 
+
+    QJsonObject encryptMessage(Device * receiver, const std::string & plaintext);
+
+    std::string decryptMessage(Device * sender, const QJsonDocument & encrypted_message);
+
     Device();
+private:
+    long long get_new_session_id();
+
+    bool check_if_got_session_id(long long id);
 };
 
 #endif

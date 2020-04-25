@@ -23,33 +23,23 @@ int main(int argc, char *argv[])
     }
 
     User * alice = new User();
+    alice->userid = 1;
+    alice->init_new_device();
     User * bob = new User();
+    bob->userid = 2;
+    bob->init_new_device();
 
-    alice->devices[0]->correspondents[0] = bob;
-    alice->devices[0]->correspondents[0]->devices[0] = bob->devices[0];
-    alice->devices[0]->correspondents[0]->devices[0]->sessions[0] = new Session();
-    alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->createSession(alice->devices[0], bob->devices[0]);
+    alice->devices[alice->current_device_id]->correspondents[bob->userid] = bob;
+    bob->devices[bob->current_device_id]->correspondents[alice->userid] = alice;
 
-    bob->devices[0]->correspondents[0] = alice;
-    bob->devices[0]->correspondents[0]->devices[0] = alice->devices[0];
-    bob->devices[0]->correspondents[0]->devices[0]->sessions[0] = new Session();
-    bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->createSession(bob->devices[0], alice->devices[0]);
-
-    EncryptedMessage x = alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->encrypt("plaintext");
-    EncryptedMessage y = alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->encrypt("plaintext");
-    EncryptedMessage z = alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->encrypt("plaintext");
-    DecryptedMessage w = bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->decrypt(x);
-    DecryptedMessage s = bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->decrypt(y);
-    DecryptedMessage v = bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->decrypt(z);
-    EncryptedMessage x1 = alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->encrypt("plaintext");
-    EncryptedMessage y1 = alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->encrypt("plaintext");
-    EncryptedMessage z1 = alice->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->encrypt("plaintext");
-    DecryptedMessage s1 = bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->decrypt(y1);
-    DecryptedMessage v1 = bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->decrypt(z1);
-    DecryptedMessage w1 = bob->devices[0]->correspondents[0]->devices[0]->sessions[0]->double_ratchet->decrypt(x1);
-    std::cout << w.getString() << std::endl;
-    std::cout << s.getString() << std::endl;
-    std::cout << v.getString() << std::endl;
+    QJsonObject alice_msg_1 = alice->encrypt_message(bob->userid, "Hello this is alice, and this is my first message!")[0].toObject();
+    QJsonObject alice_msg_2 = alice->encrypt_message(bob->userid, "second message")[0].toObject();
+    std::cout << bob->decrypt_message(QJsonDocument(alice_msg_2)) << std::endl;
+    std::cout << bob->decrypt_message(QJsonDocument(alice_msg_1)) << std::endl;
+    QJsonObject bob_msg_1 = bob->encrypt_message(alice->userid, "Hello this is bob and this is my first message!")[0].toObject();
+    QJsonObject bob_msg_2 = bob->encrypt_message(alice->userid, "bob second message")[0].toObject();
+    std::cout << alice->decrypt_message(QJsonDocument(bob_msg_2)) << std::endl;
+    std::cout << alice->decrypt_message(QJsonDocument(bob_msg_1)) << std::endl;
 
     return 0;
 }

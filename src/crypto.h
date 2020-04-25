@@ -39,7 +39,7 @@ struct X3DH
 {
     std::vector<unsigned char> rx;
     std::vector<unsigned char> tx;
-    X25519 ephemeral;
+    X25519  ephemeral;
 
     void initiate(Device * sender, Device * receiver);
     void sync(Device * sender, Device * receiver);

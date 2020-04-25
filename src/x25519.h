@@ -1,6 +1,7 @@
 #ifndef X25519_H
 #define X25519_H
 #include <vector>
+#include <iostream>
 #include <sodium.h>
 #include <QJsonObject>
 #include <QJsonDocument>

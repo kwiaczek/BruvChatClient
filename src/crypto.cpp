@@ -47,6 +47,7 @@ void X3DH::sync(Device *sender, Device *receiver)
         dhs.push_back(std::make_unique<DH>());
     }
 
+
     //DH1 = DH(IKA, SPKB)
     dhs[0]->sync(sender->identity_key.x25519_keypair, receiver->signed_prekey.x25519_keypair);
     //DH2 = DH(EKA, IKB)
@@ -75,6 +76,12 @@ X3DH::X3DH(){
     rx.resize(crypto_kx_SESSIONKEYBYTES);
     tx.reserve(crypto_kx_SESSIONKEYBYTES);
     tx.resize(crypto_kx_SESSIONKEYBYTES);
+
+    ephemeral.public_key.reserve(crypto_box_PUBLICKEYBYTES);
+    ephemeral.public_key.resize(crypto_box_PUBLICKEYBYTES);
+    ephemeral.secret_key.reserve(crypto_box_SECRETKEYBYTES);
+    ephemeral.secret_key.resize(crypto_box_SECRETKEYBYTES);
+
 }
 void DH::initalize(const X25519 &sender, const X25519 &receiver)
 {
@@ -96,6 +103,7 @@ DH::DH()
 
 DoubleRatchet::DoubleRatchet()
 {
+    x3dh = nullptr;
 
     rx_chainkey.reserve(crypto_kx_SESSIONKEYBYTES);
     rx_chainkey.resize(crypto_kx_SESSIONKEYBYTES);
@@ -128,7 +136,7 @@ void DoubleRatchet::sync(MessageHeader header)
 {
     x3dh = new X3DH();
     x3dh->ephemeral = header.ephemeral;
-    x3dh->sync(sync_device, init_device);
+    x3dh->sync(init_device, sync_device);
 
     //initalize with x3dh
     std::copy(x3dh->rx.begin(), x3dh->rx.end(), rx_chainkey.begin());
@@ -180,10 +188,13 @@ EncryptedMessage DoubleRatchet::encrypt(const std::string &plaintext)
 
 DecryptedMessage DoubleRatchet::decrypt(EncryptedMessage encrypted)
 {
+
+
     if(x3dh == nullptr)
     {
         sync(encrypted.header);
     }
+
 
     std::vector<unsigned char> mk = get_message_key(encrypted.header);
     std::vector<unsigned char> nonce = encrypted.header.nonce;
