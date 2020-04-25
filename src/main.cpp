@@ -22,24 +22,8 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    User * alice = new User();
-    alice->userid = 1;
-    alice->init_new_device();
-    User * bob = new User();
-    bob->userid = 2;
-    bob->init_new_device();
-
-    alice->devices[alice->current_device_id]->correspondents[bob->userid] = bob;
-    bob->devices[bob->current_device_id]->correspondents[alice->userid] = alice;
-
-    QJsonObject alice_msg_1 = alice->encrypt_message(bob->userid, "Hello this is alice, and this is my first message!")[0].toObject();
-    QJsonObject alice_msg_2 = alice->encrypt_message(bob->userid, "second message")[0].toObject();
-    std::cout << bob->decrypt_message(QJsonDocument(alice_msg_2)) << std::endl;
-    std::cout << bob->decrypt_message(QJsonDocument(alice_msg_1)) << std::endl;
-    QJsonObject bob_msg_1 = bob->encrypt_message(alice->userid, "Hello this is bob and this is my first message!")[0].toObject();
-    QJsonObject bob_msg_2 = bob->encrypt_message(alice->userid, "bob second message")[0].toObject();
-    std::cout << alice->decrypt_message(QJsonDocument(bob_msg_2)) << std::endl;
-    std::cout << alice->decrypt_message(QJsonDocument(bob_msg_1)) << std::endl;
+    save_to_encrypted_file("x.txt", "x", "Bertram Gilfoyle");
+    std::cout << read_encrypted_file("x.txt", "x")  << std::endl;
 
     return 0;
 }
