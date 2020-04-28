@@ -4,17 +4,18 @@
 
 QJsonObject Device::encryptMessage(Device *receiver, const std::string &plaintext)
 {
-    if(current_session_id == -1)
+    if(current_session == nullptr)
     {
         //create new session
-        current_session_id = get_new_session_id();
-        sessions[current_session_id] = new Session();
-        sessions[current_session_id]->sessionid = current_session_id;
+        long long new_current_session_id = get_new_session_id();
+        current_session = new Session();
+        current_session->sessionid = new_current_session_id;
+        sessions[new_current_session_id] = current_session;
     }
     QJsonObject device_json;
     device_json.insert("sender_deviceid", deviceid);
     device_json.insert("receiver_deviceid", receiver->deviceid);
-    device_json.insert("session", sessions[current_session_id]->encryptMessage(this, receiver, plaintext));
+    device_json.insert("session", current_session->encryptMessage(this, receiver, plaintext));
 
     return device_json;
 }
@@ -25,23 +26,23 @@ std::string Device::decryptMessage(Device *sender, const QJsonDocument &encrypte
     //if nullptr there was not such session, we shall create one!
     if(check_if_got_session_id(session_id))
     {
-        current_session_id = session_id;
+        current_session = sessions[session_id];
     }
-    else if(current_session_id == -1)
+    else if(current_session == nullptr)
     {
         //create new session
-        sessions[session_id] = new Session();
-        sessions[session_id]->sessionid =session_id ;
-        current_session_id = session_id;
+        current_session = new Session();
+        current_session->sessionid = session_id;
+        sessions[session_id] = current_session;
     }
 
-    return sessions[current_session_id]->decryptMessage(sender, this, QJsonDocument(encrypted_message["session"].toObject()));
+    return current_session->decryptMessage(sender, this, QJsonDocument(encrypted_message["session"].toObject()));
 }
 
 Device::Device()
 {
     deviceid = 0;
-    current_session_id = -1;
+    current_session = nullptr;
 
     //generate identity key
     identity_key.ed25519_keypair.generate();

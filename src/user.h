@@ -13,7 +13,7 @@ public:
     long long int userid;
     //Each UserRecord contains a set of DeviceRecords, indexed by DeviceID.
     std::map<long long int, Device*> devices;
-    long long current_device_id;
+    Device * current_device;
 
     User();
 

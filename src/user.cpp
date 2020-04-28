@@ -3,7 +3,7 @@
 User::User()
 {
     userid = 0;
-    current_device_id = -1;
+    current_device = nullptr;
 }
 
 QJsonArray User::encrypt_message(long long receiver_userid, const std::string &plaintext)
@@ -20,22 +20,22 @@ QJsonArray User::encrypt_message(long long receiver_userid, const std::string &p
         QJsonObject tmp = encrypted_message_json;
         tmp.insert("type", "interal");
 
-        if(it->first != current_device_id)
+        if(it->second != current_device)
         {
             tmp.insert( "device",
-                        devices[current_device_id]->encryptMessage(it->second, plaintext)
+                        it->second->encryptMessage(it->second, plaintext)
                         );
             messages.append(tmp);
         }
     }
 
     //external messages
-    for(auto it = devices[current_device_id]->correspondents[receiver_userid]->devices.begin(); it != devices[current_device_id]->correspondents[receiver_userid]->devices.end(); it++)
+    for(auto it = current_device->correspondents[receiver_userid]->devices.begin(); it != current_device->correspondents[receiver_userid]->devices.end(); it++)
     {
         QJsonObject tmp = encrypted_message_json;
         tmp.insert("type", "external");
         tmp.insert( "device",
-                    devices[current_device_id]->encryptMessage(it->second, plaintext)
+                    current_device->encryptMessage(it->second, plaintext)
                     );
 
         messages.append(tmp);
@@ -52,13 +52,14 @@ std::string User::decrypt_message(const QJsonDocument &encrypted_message)
     std::string plaintext = "";
     if(type == "external")
     {
-        Device * sender = devices[current_device_id]->correspondents[sender_userid]->devices[sender_deviceid];
-        plaintext = devices[current_device_id]->decryptMessage(sender, QJsonDocument(encrypted_message["device"].toObject()));
+        Device * sender = current_device->correspondents[sender_userid]->devices[sender_deviceid];
+        plaintext = current_device->decryptMessage(sender, QJsonDocument(encrypted_message["device"].toObject()));
     }
     else if(type == "internal")
     {
-        Device * sender =devices[current_device_id]->correspondents[userid]->devices[sender_deviceid];
-        plaintext = devices[current_device_id]->decryptMessage(sender, QJsonDocument(encrypted_message["device"].toObject()));
+        Device * sender = current_device->correspondents[userid]->devices[sender_deviceid];
+        plaintext = current_device->decryptMessage(sender, QJsonDocument(encrypted_message["device"].toObject()));
+
     }
     return plaintext;
 }
@@ -68,7 +69,7 @@ void User::init_new_device()
     long long new_device_id = get_new_device_id();
     devices[new_device_id] = new Device();
     devices[new_device_id]->deviceid = new_device_id;
-    current_device_id =  new_device_id;
+    current_device =  devices[new_device_id];
 }
 
 long long User::get_new_device_id()

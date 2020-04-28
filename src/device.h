@@ -15,7 +15,7 @@ public:
     std::map<long long int, User*> correspondents;
     //There is some SessionID which uniquely identifies each session
     std::map<long long int, Session*> sessions;
-    long long current_session_id;
+    Session * current_session;
 
     IdentityKey identity_key;
     SignedPreKey signed_prekey;

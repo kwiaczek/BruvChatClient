@@ -22,8 +22,23 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    save_to_encrypted_file("x.txt", "x", "Bertram Gilfoyle");
-    std::cout << read_encrypted_file("x.txt", "x")  << std::endl;
+    User * alice = new User();
+    alice->userid = 1;
+    alice->init_new_device();
+    User * bob = new User();
+    bob->userid = 2;
+    bob->init_new_device();
+
+    alice->current_device->correspondents[bob->userid] = bob;
+    bob->current_device->correspondents[alice->userid] = alice;
+
+    QJsonArray msg = alice->encrypt_message(bob->userid, "Gothenburg, Sweden");
+
+    for(int i =0 ;i < msg.size(); i++)
+    {
+        std::cout << bob->decrypt_message(QJsonDocument(msg[i].toObject())) << std::endl;
+    }
+
 
     return 0;
 }
