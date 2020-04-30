@@ -71,6 +71,22 @@ void X3DH::sync(Device *sender, Device *receiver)
     crypto_generichash_final(&state, tx.data(), tx.size());
 }
 
+QJsonObject X3DH::toJson()
+{
+    QJsonObject obj;
+    obj.insert("rx", bytesToBase64qstring(rx));
+    obj.insert("tx", bytesToBase64qstring(tx));
+    obj.insert("ephemeral", ephemeral.toJson(X25519_PRIVATE));
+    return obj;
+}
+
+void X3DH::parseJson(const QJsonDocument &serialzed_data)
+{
+    rx = base64QStringToBytes(serialzed_data["rx"].toString());
+    tx = base64QStringToBytes(serialzed_data["tx"].toString());
+    ephemeral.parseJson(QJsonDocument(serialzed_data["ephemeral"].toObject()));
+}
+
 X3DH::X3DH(){
     rx.reserve(crypto_kx_SESSIONKEYBYTES);
     rx.resize(crypto_kx_SESSIONKEYBYTES);
@@ -188,7 +204,6 @@ EncryptedMessage DoubleRatchet::encrypt(const std::string &plaintext)
 DecryptedMessage DoubleRatchet::decrypt(EncryptedMessage encrypted)
 {
 
-    std::cout << QJsonDocument(encrypted.toJson()).toJson().toStdString() << std::endl;
 
     if(x3dh == nullptr)
     {
@@ -209,6 +224,67 @@ DecryptedMessage DoubleRatchet::decrypt(EncryptedMessage encrypted)
     }
 
     return decrypted_message;
+}
+
+QJsonObject DoubleRatchet::toJson()
+{
+    QJsonObject obj;
+    obj.insert("self", self.toJson(X25519_PRIVATE));
+    obj.insert("remote", remote.toJson(X25519_PRIVATE_REMOTE));
+    obj.insert("rx_chainkey", bytesToBase64qstring(rx_chainkey));
+    obj.insert("tx_chainkey", bytesToBase64qstring(tx_chainkey));
+
+    obj.insert("rx_counter", rx_counter);
+    obj.insert("tx_counter", tx_counter);
+    obj.insert("tx_previous", tx_previous);
+
+    QJsonArray skipped_message_keys_json;
+
+    for(auto it = skipped_messages_keys.begin(); it != skipped_messages_keys.end(); it++)
+    {
+        QJsonObject skipped_key_json;
+
+        QJsonObject index;
+        std::pair<std::vector<unsigned char>, long long> index_pair = it->first;
+        index.insert("public_key", bytesToBase64qstring(std::get<0>(index_pair)));
+        index.insert("n", std::get<1>(index_pair));
+
+        skipped_key_json.insert("index", index);
+
+        skipped_key_json.insert("key", bytesToBase64qstring(it->second));
+
+        skipped_message_keys_json.append(skipped_key_json);
+    }
+
+    obj.insert("skipped_message_keys", skipped_message_keys_json);
+
+    obj.insert("x3dh", x3dh->toJson());
+
+
+    return obj;
+}
+
+void DoubleRatchet::parseJson(const QJsonDocument &serialized_data)
+{
+    self.parseJson(QJsonDocument(serialized_data["self"].toObject()));
+    remote.parseJson(QJsonDocument(serialized_data["remote"].toObject()));
+    rx_chainkey = base64QStringToBytes(serialized_data["rx_chainkey"].toString());
+    tx_chainkey = base64QStringToBytes(serialized_data["tx_chainkey"].toString());
+    rx_counter = serialized_data["rx_counter"].toInt();
+    tx_counter = serialized_data["tx_counter"].toInt();
+    tx_previous = serialized_data["tx_previous"].toInt();
+
+    QJsonArray skipped_key_array_json = serialized_data["skipped_message_keys"].toArray();
+    for(int i =0 ; i < skipped_key_array_json.size(); i++)
+    {
+        QJsonObject skipped_key_json = skipped_key_array_json[i].toObject();
+        QJsonObject index = skipped_key_json["index"].toObject();
+        std::pair<std::vector<unsigned char>, long long> index_pair = std::make_pair(base64QStringToBytes(index["public_key"].toString()), index["n"].toInt());
+        skipped_messages_keys[index_pair] = base64QStringToBytes(skipped_key_json["key"].toString());
+    }
+
+    x3dh = new X3DH();
+    x3dh->parseJson(QJsonDocument(serialized_data["x3dh"].toObject()));
 }
 
 
@@ -298,4 +374,37 @@ void DoubleRatchet::dhratchet(const X25519 &new_remote)
     crypto_generichash_init(&state, tx_chainkey.data(), tx_chainkey.size(), tx_chainkey.size());
     crypto_generichash_update(&state, dh->tx.data(), dh->tx.size());
     crypto_generichash_final(&state, tx_chainkey.data(), tx_chainkey.size());
+}
+
+QJsonObject IdentityKey::toJson(int serializaion_type)
+{
+    QJsonObject obj;
+    obj.insert("serialization_type", serializaion_type);
+    obj.insert("ed25519", ed25519_keypair.toJson(serializaion_type));
+    return obj;
+}
+
+void IdentityKey::parseJson(const QJsonDocument &serialized_data)
+{
+    int serialization_type = serialized_data["serialization_type"].toInt();
+    ed25519_keypair.parseJson(QJsonDocument(serialized_data["ed25519"].toObject()));
+    x25519_keypair.derive_from_ed25519(ed25519_keypair);
+}
+
+QJsonObject SignedPreKey::toJson(int serializaion_type)
+{
+
+    QJsonObject obj;
+    obj.insert("serialization_type", serializaion_type);
+    obj.insert("ed25519", ed25519_keypair.toJson(serializaion_type));
+    obj.insert("signature", bytesToBase64qstring(signature));
+    return obj;
+}
+
+void SignedPreKey::parseJson(const QJsonDocument &serialized_data)
+{
+    int serialization_type = serialized_data["serialization_type"].toInt();
+    ed25519_keypair.parseJson(QJsonDocument(serialized_data["ed25519"].toObject()));
+    x25519_keypair.derive_from_ed25519(ed25519_keypair);
+    signature = base64QStringToBytes(serialized_data["signature"].toString());
 }

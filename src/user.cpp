@@ -60,21 +60,46 @@ std::string User::decrypt_message(const QJsonDocument &encrypted_message)
     return plaintext;
 }
 
-void User::init_new_device()
+
+QJsonObject User::toJson(int serialization_type)
 {
-    long long new_device_id = get_new_device_id();
-    devices[new_device_id] = new Device();
-    devices[new_device_id]->deviceid = new_device_id;
-    current_device =  devices[new_device_id];
+    QJsonObject obj;
+    obj.insert("serialization_type", serialization_type);
+    obj.insert("userid", userid);
+    if(current_device != nullptr)
+    {
+        obj.insert("current_device", current_device->toJson(serialization_type));
+    }
+    if(serialization_type != USER_PUBLIC)
+    {
+        QJsonArray devices_json;
+        for(auto it = devices.begin(); it != devices.end(); it++)
+        {
+            QJsonObject device_obj_json;
+            device_obj_json.insert("index", it->first);
+            device_obj_json.insert("device", it->second->toJson(serialization_type));
+            devices_json.append(device_obj_json);
+        }
+        obj.insert("devices", devices_json);
+    }
+    return obj;
 }
 
-long long User::get_new_device_id()
+void User::parseJson(const QJsonDocument & serialized_data)
 {
-    long long max_device_id = 0;
-    for(auto it = devices.begin(); it != devices.end(); it++)
+    int serialization_type = serialized_data["serialization_type"].toInt();
+    userid = serialized_data["userid"].toInt();
+    if(serialized_data["current_device"] != QJsonValue::Undefined)
     {
-        max_device_id = std::max(max_device_id, it->first);
+        current_device = new Device();
+        current_device->parseJson(QJsonDocument(serialized_data["current_device"].toObject()));
     }
-    max_device_id++;
-    return  max_device_id;
+    QJsonArray devices_array_json = serialized_data["devices"].toArray();
+    for(int i =0; i <devices_array_json.size(); i++)
+    {
+        QJsonObject devices_json_obj = devices_array_json[i].toObject();
+        devices[devices_json_obj["index"].toInt()] = new Device();
+        devices[devices_json_obj["index"].toInt()]->parseJson(QJsonDocument(devices_json_obj["device"].toObject()));
+    }
 }
+

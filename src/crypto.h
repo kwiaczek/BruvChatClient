@@ -6,15 +6,34 @@
 #include <iostream>
 #include <map>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include "x25519.h"
 #include "ed25519.h"
 #include "message.h"
+#include "utils.h"
+
+
+enum{
+    IDENTITY_KEY_PUBLIC,
+    IDENTITY_KEY_PRIVATE,
+    IDENTITY_KEY_PRIVATE_REMOTE
+};
+
 
 struct IdentityKey
 {
     Ed25519 ed25519_keypair;
     X25519 x25519_keypair;
+
+    QJsonObject toJson(int serializaion_type);
+    void parseJson(const QJsonDocument & serialized_data);
+};
+
+enum{
+    SIGNED_PREKEY_PUBLIC,
+    SIGNED_PREKEY_PRIVATE,
+    SIGNED_PREKEY_PRIVATE_REMOTE
 };
 
 struct SignedPreKey
@@ -22,6 +41,8 @@ struct SignedPreKey
     Ed25519 ed25519_keypair;
     X25519 x25519_keypair;
     std::vector<unsigned char> signature;
+    QJsonObject toJson(int serializaion_type);
+    void parseJson(const QJsonDocument & serialized_data);
 };
 
 struct DH{
@@ -35,6 +56,7 @@ struct DH{
 };
 
 class Device;
+
 struct X3DH
 {
     std::vector<unsigned char> rx;
@@ -43,6 +65,9 @@ struct X3DH
 
     void initiate(Device * sender, Device * receiver);
     void sync(Device * sender, Device * receiver);
+
+    QJsonObject toJson();
+    void parseJson(const QJsonDocument & serialzed_data);
 
     X3DH();
 };
@@ -74,6 +99,9 @@ public:
 public:
     EncryptedMessage encrypt(const std::string & plaintext);
     DecryptedMessage decrypt(EncryptedMessage  encrypted);
+public:
+    QJsonObject toJson();
+    void parseJson(const QJsonDocument & serialized_data);
 private:
     MessageHeader header(const std::vector<unsigned char> & nonce);
 private:

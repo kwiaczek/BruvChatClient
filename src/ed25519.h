@@ -5,8 +5,12 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 
-#define ED25519_PUBLIC true
-#define ED25519_PRIVATE false
+
+enum{
+    ED25519_PUBLIC,
+    ED25519_PRIVATE,
+    ED25519_PRIVATE_REMOTE
+};
 
 struct Ed25519
 {
@@ -18,7 +22,7 @@ struct Ed25519
 
     void generate();
 
-    QJsonObject toJson(bool is_public);
+    QJsonObject toJson(int serialization_type);
     void parseJson(const QJsonDocument & obj);
 };
 #endif // ED25519_H

@@ -7,9 +7,11 @@
 #include <QJsonDocument>
 #include "ed25519.h"
 
-#define X25519_PUBLIC true
-#define X25519_PRIVATE false
-
+enum{
+    X25519_PUBLIC,
+    X25519_PRIVATE,
+    X25519_PRIVATE_REMOTE
+};
 struct X25519
 {
     //used for AEAD
@@ -23,7 +25,7 @@ struct X25519
     //ed25519 -> curve25519
     void derive_from_ed25519(Ed25519 & key);
 
-    QJsonObject toJson(bool is_public);
+    QJsonObject toJson(int serialization_type);
     void parseJson(const QJsonDocument & obj);
 };
 

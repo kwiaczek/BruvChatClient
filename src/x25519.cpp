@@ -20,13 +20,13 @@ void X25519::derive_from_ed25519(Ed25519 &key)
     crypto_sign_ed25519_sk_to_curve25519(secret_key.data(), key.secret_key.data());
 }
 
-QJsonObject X25519::toJson(bool is_public)
+QJsonObject X25519::toJson(int serialization_type)
 {
     QJsonObject tmp;
-    tmp.insert("is_public", is_public);
+    tmp.insert("serialization_type", serialization_type);
     tmp.insert("public", bytesToBase64qstring(public_key));
 
-    if(is_public == X25519_PRIVATE)
+    if(serialization_type == X25519_PRIVATE)
     {
         tmp.insert("private", bytesToBase64qstring(secret_key));
     }
@@ -35,12 +35,12 @@ QJsonObject X25519::toJson(bool is_public)
 
 void X25519::parseJson(const QJsonDocument &obj)
 {
-    bool is_public = (bool)obj["is_public"].toBool();
+    int serialization_type = obj["serialization_type"].toInt();
 
     std::vector<unsigned char> json_pub = base64QStringToBytes(obj["public"].toString());
     std::copy(json_pub.begin(), json_pub.end(), public_key.begin());
 
-    if(is_public == X25519_PRIVATE)
+    if(serialization_type == X25519_PRIVATE)
     {
         std::vector<unsigned char> json_prv = base64QStringToBytes(obj["private"].toString());
         std::copy(json_prv.begin(), json_prv.end(), secret_key.begin());

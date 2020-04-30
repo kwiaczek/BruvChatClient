@@ -18,6 +18,9 @@ public:
     void createSession(Device * sender, Device * receiver);
     void recreateSession(Device * sender, Device * receiver);
 
+    QJsonObject toJson();
+    void parseJson(const QJsonDocument& serialazed_data);
+
     QJsonObject encryptMessage(Device * sender, Device * receiver, const std::string & plaintext);
 
     std::string decryptMessage(Device * sender, Device * receiver, const QJsonDocument & encrypted);

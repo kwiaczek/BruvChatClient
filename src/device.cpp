@@ -55,6 +55,77 @@ Device::Device()
     signed_prekey.signature = create_signature(identity_key.ed25519_keypair, signed_prekey.x25519_keypair.public_key);
 }
 
+QJsonObject Device::toJson(int serialization_type)
+{
+    QJsonObject obj;
+    obj.insert("serialization_type", serialization_type);
+    obj.insert("deviceid", deviceid);
+    obj.insert("identity_key", identity_key.toJson(serialization_type));
+    obj.insert("signed_prekey", signed_prekey.toJson(serialization_type));
+
+    if(serialization_type == DEVICE_PRIVATE_REMOTE)
+    {
+        QJsonArray sessions_arrays_json;
+        for(auto it = sessions.begin(); it != sessions.end(); it++)
+        {
+            QJsonObject session_json;
+            session_json.insert("index", it->first);
+            session_json.insert("session", it->second->toJson());
+            sessions_arrays_json.append(session_json);
+        }
+        obj.insert("sessions", sessions_arrays_json);
+    }
+
+
+    if(serialization_type == DEVICE_PRIVATE)
+    {
+        QJsonArray correspondes_array_json;
+        for(auto it = correspondents.begin(); it != correspondents.end(); it++)
+        {
+            QJsonObject correspondents_json;
+            correspondents_json.insert("index", it->first);
+            correspondents_json.insert("user", it->second->toJson(USER_PRIVATE_REMOTE));
+            correspondes_array_json.append(correspondents_json);
+        }
+        obj.insert("correspondents", correspondes_array_json);
+    }
+
+    return  obj;
+}
+
+void Device::parseJson(const QJsonDocument &serialized_data)
+{
+    int serialization_type = serialized_data["serialization_type"].toInt();
+
+
+    identity_key.parseJson(QJsonDocument(serialized_data["identity_key"].toObject()));
+    signed_prekey.parseJson(QJsonDocument(serialized_data["signed_prekey"].toObject()));
+    deviceid = serialized_data["deviceid"].toInt();
+
+    if(serialization_type == DEVICE_PRIVATE_REMOTE)
+    {
+        QJsonArray sessions_array_json = serialized_data["sessions"].toArray();
+        for(int i = 0; i < sessions_array_json.size(); i++)
+        {
+            QJsonObject session_json = sessions_array_json[i].toObject();
+            sessions[session_json["index"].toInt()] = new Session();
+            sessions[session_json["index"].toInt()]->parseJson(QJsonDocument(session_json["session"].toObject()));
+        }
+    }
+
+    if(serialization_type == DEVICE_PRIVATE)
+    {
+        QJsonArray correspondes_array_json = serialized_data["correspondents"].toArray();
+        for(int i = 0; i < correspondes_array_json.size(); i++)
+        {
+            QJsonObject correspondent_json =  correspondes_array_json[i].toObject();
+            correspondents[correspondent_json["index"].toInt()] = new User();
+            correspondents[correspondent_json["index"].toInt()]->parseJson(QJsonDocument(correspondent_json["user"].toObject()));
+        }
+    }
+
+}
+
 long long Device::get_new_session_id()
 {
     // for now find highest sessionid and increment it

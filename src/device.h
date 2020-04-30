@@ -4,6 +4,13 @@
 #include "crypto.h"
 #include <map>
 
+
+enum {
+    DEVICE_PUBLIC,
+    DEVICE_PRIVATE,
+    DEVICE_PRIVATE_REMOTE
+};
+
 class User;
 class Session;
 class Device
@@ -26,6 +33,9 @@ public:
     std::string decryptMessage(Device * sender, const QJsonDocument & encrypted_message);
 
     Device();
+
+    QJsonObject toJson(int serialization_type);
+    void parseJson(const QJsonDocument & serialized_data);
 private:
     long long get_new_session_id();
 

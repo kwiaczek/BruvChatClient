@@ -24,20 +24,26 @@ int main(int argc, char *argv[])
 
     User * alice = new User();
     alice->userid = 1;
-    alice->init_new_device();
+    alice->current_device = new Device();
+    alice->current_device->deviceid = 1;
     User * bob = new User();
     bob->userid = 2;
-    bob->init_new_device();
-
+    bob->devices[1] = new Device();
+    bob->devices[1]->deviceid = 1;
     alice->current_device->correspondents[bob->userid] = bob;
-    bob->current_device->correspondents[alice->userid] = alice;
 
-    QJsonArray msg = alice->encrypt_message(bob->userid, "Gothenburg, Sweden");
+    alice->encrypt_message(bob->userid, "text");
 
-    for(int i =0 ;i < msg.size(); i++)
-    {
-        std::cout << bob->decrypt_message(QJsonDocument(msg[i].toObject())) << std::endl;
-    }
+    QJsonDocument doc =  QJsonDocument(alice->toJson(USER_PRIVATE));
+
+    std::cout << doc.toJson().toStdString() << std::endl;
+
+    User new_user;
+    new_user.parseJson(doc);
+    doc = QJsonDocument(new_user.toJson(USER_PRIVATE));
+    std::cout << doc.toJson().toStdString() << std::endl;
+
+
 
 
     return 0;

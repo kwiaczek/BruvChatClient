@@ -16,6 +16,21 @@ void Session::createSession(Device *sender, Device *receiver)
     double_ratchet->sync_device = receiver;
 }
 
+QJsonObject Session::toJson()
+{
+    QJsonObject obj;
+    obj.insert("sessionid", sessionid);
+    obj.insert("double_ratchet", double_ratchet->toJson());
+    return  obj;
+}
+
+void Session::parseJson(const QJsonDocument &serialazed_data)
+{
+    sessionid = serialazed_data["sessionid"].toInt();
+    double_ratchet = new DoubleRatchet();
+    double_ratchet->parseJson(QJsonDocument(serialazed_data["double_ratchet"].toObject()));
+}
+
 QJsonObject Session::encryptMessage(Device *sender, Device *receiver, const std::string &plaintext)
 {
     QJsonObject encrypted_message;

@@ -5,6 +5,12 @@
 #include <map>
 #include <QJsonArray>
 
+enum{
+    USER_PUBLIC,
+    USER_PRIVATE,
+    USER_PRIVATE_REMOTE
+};
+
 class Device;
 class User
 {
@@ -20,9 +26,8 @@ public:
     QJsonArray encrypt_message(long long receiver_userid, const std::string & plaintext);
     std::string decrypt_message(const QJsonDocument & encrypted_message);
 
-    void init_new_device();
-private:
-    long long get_new_device_id();
+    QJsonObject toJson(int serialization_type);
+    void parseJson(const QJsonDocument & serialized_data);
 };
 
 #endif
