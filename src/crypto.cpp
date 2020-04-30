@@ -178,7 +178,6 @@ EncryptedMessage DoubleRatchet::encrypt(const std::string &plaintext)
    encrypted_message.header = header(nonce);
    encrypted_message.ciphertext.reserve(plaintext.size() + crypto_aead_aes256gcm_ABYTES);
    encrypted_message.ciphertext.resize(plaintext.size() + crypto_aead_aes256gcm_ABYTES);
-
    crypto_aead_aes256gcm_encrypt(encrypted_message.ciphertext.data(), nullptr, (unsigned char *) plaintext.c_str(), plaintext.size(), encrypted_message.header.toJsonBytes().data(), encrypted_message.header.toJsonBytes().size(), NULL, nonce.data(), mk.data());
 
    tx_counter++;
@@ -189,6 +188,7 @@ EncryptedMessage DoubleRatchet::encrypt(const std::string &plaintext)
 DecryptedMessage DoubleRatchet::decrypt(EncryptedMessage encrypted)
 {
 
+    std::cout << QJsonDocument(encrypted.toJson()).toJson().toStdString() << std::endl;
 
     if(x3dh == nullptr)
     {
@@ -203,7 +203,6 @@ DecryptedMessage DoubleRatchet::decrypt(EncryptedMessage encrypted)
     DecryptedMessage decrypted_message;
     decrypted_message.plaintext.reserve(ciphertext.size() - crypto_aead_aes256gcm_ABYTES);
     decrypted_message.plaintext.resize(ciphertext.size() - crypto_aead_aes256gcm_ABYTES);
-
     if(ciphertext.size() < crypto_aead_aes256gcm_ABYTES || (crypto_aead_aes256gcm_decrypt(decrypted_message.plaintext.data(), nullptr, NULL, ciphertext.data(), ciphertext.size(), encrypted.header.toJsonBytes().data(), encrypted.header.toJsonBytes().size(), nonce.data(), mk.data()) != 0))
     {
         std::cerr << "error!!" << std::endl;

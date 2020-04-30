@@ -6,15 +6,16 @@ User::User()
     current_device = nullptr;
 }
 
+//given a userid, function will encrypt copy for every devices of the user, as well copy for every device for the remote user
 QJsonArray User::encrypt_message(long long receiver_userid, const std::string &plaintext)
 {
     QJsonArray messages;
 
-    //internal messages
     QJsonObject encrypted_message_json;
     encrypted_message_json.insert("sender_userid", userid);
     encrypted_message_json.insert("receiver_userid", receiver_userid);
 
+    //internal messages
     for(auto it = devices.begin(); it != devices.end(); it++)
     {
         QJsonObject tmp = encrypted_message_json;
@@ -22,9 +23,7 @@ QJsonArray User::encrypt_message(long long receiver_userid, const std::string &p
 
         if(it->second != current_device)
         {
-            tmp.insert( "device",
-                        it->second->encryptMessage(it->second, plaintext)
-                        );
+            tmp.insert( "device", it->second->encryptMessage(it->second, plaintext));
             messages.append(tmp);
         }
     }
@@ -34,10 +33,7 @@ QJsonArray User::encrypt_message(long long receiver_userid, const std::string &p
     {
         QJsonObject tmp = encrypted_message_json;
         tmp.insert("type", "external");
-        tmp.insert( "device",
-                    current_device->encryptMessage(it->second, plaintext)
-                    );
-
+        tmp.insert( "device", current_device->encryptMessage(it->second, plaintext));
         messages.append(tmp);
     }
     return messages;
