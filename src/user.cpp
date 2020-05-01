@@ -66,7 +66,6 @@ QJsonObject User::toJson(int serialization_type)
     QJsonObject obj;
     obj.insert("serialization_type", serialization_type);
     obj.insert("userid", userid);
-    obj.insert("username", QString::fromStdString(username));
     if(current_device != nullptr)
     {
         obj.insert("current_device", current_device->toJson(serialization_type));
@@ -90,7 +89,6 @@ void User::parseJson(const QJsonDocument & serialized_data)
 {
     int serialization_type = serialized_data["serialization_type"].toInt();
     userid = serialized_data["userid"].toInt();
-    username = serialized_data["username"].toString().toStdString();
     if(serialized_data["current_device"] != QJsonValue::Undefined)
     {
         current_device = new Device();

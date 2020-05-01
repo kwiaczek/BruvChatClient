@@ -1,6 +1,7 @@
 #include "loginwindow.h"
 #include "ui_loginwindow.h"
 #include <QMessageBox>
+#include <QFile>
 
 LoginWindow::LoginWindow(std::shared_ptr<User> user, std::shared_ptr<QWebSocket> websocket, QWidget *parent):
     QDialog(parent),
@@ -55,21 +56,78 @@ void LoginWindow::bruvLogin()
 {
     connect(m_websocket.get(), &QWebSocket::textMessageReceived, this, &LoginWindow::handleBruvLoginMsg);
 
-    QString username = ui->sign_up_username->text();
+    QString username = ui->sign_in_username->text();
     m_user->username = username.toStdString();
-    QString password = ui->sign_up_password->text();
+    QString password = ui->sign_in_password->text();
+    m_user->password = password.toStdString();
 
+    //check if there is local copy of data
+    if(QFile(("users/"+username.toStdString()).c_str()).exists())
+    {
+        std::string user_data_decrypted = read_encrypted_file(("users/"+username.toStdString()), password.toStdString());
+        if(user_data_decrypted != "")
+        {
+            m_user->parseJson(QJsonDocument::fromJson(user_data_decrypted.c_str()));
+
+            QJsonObject login_with_data_msg{
+                {"type", "loginwithdata"},
+                {"data", QJsonObject{
+                    {"username", username},
+                    {"password", password},
+                    {"userid", m_user->userid},
+                    {"deviceid", m_user->current_device->deviceid}
+                }}
+            };
+            m_websocket->sendTextMessage(QString::fromStdString(QJsonDocument(login_with_data_msg).toJson().toStdString()));
+        }
+        else
+        {
+            std::cout << "Error while reading the file!" << std::endl;
+        }
+    }
+    else
+    {
+        m_user->current_device = new Device();
+
+        QJsonObject login_with_no_data_msg{
+            {"type", "loginwithnodata"},
+            {"data", QJsonObject{
+                {"username", username},
+                {"password", password},
+                {"data", m_user->toJson(USER_PUBLIC)}
+            }}
+        };
+        m_websocket->sendTextMessage(QString::fromStdString(QJsonDocument(login_with_no_data_msg).toJson().toStdString()));
+    }
 }
 
 void LoginWindow::handleBruvLoginMsg(QString msg)
 {
     m_websocket->disconnect();
+
+    QJsonDocument server_response = QJsonDocument::fromJson(msg.toUtf8());
+
+    if(server_response["type"] == "loginwithnodata_accepted")
+    {
+        m_user->userid = server_response["userid"].toInt();
+        m_user->current_device->deviceid = server_response["deviceid"].toInt();
+
+        save_to_encrypted_file(("users/"+m_user->username), m_user->password, QJsonDocument(m_user->toJson(USER_PRIVATE)).toJson().toStdString());
+        this->accept();
+    }
+    else if(server_response["type"] == "loginwithdata_accepted")
+    {
+        this->accept();
+    }
+    else if(server_response["type"] == "loginwithnodata_rejected" || server_response["type"] == "loginwithdata_rejected")
+    {
+        QMessageBox::critical(this, "Logowanie", "Logowanie zakończyło się niepowodzeniem!");
+    }
 }
 
 void LoginWindow::handleBruvRegisterMsg(QString msg)
 {
     m_websocket->disconnect();
-    std::cout << msg.toStdString() << std::endl;
 
     QJsonDocument server_response = QJsonDocument::fromJson(msg.toUtf8());
 

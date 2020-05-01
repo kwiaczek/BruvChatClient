@@ -55,9 +55,6 @@ static void save_to_encrypted_file(const std::string & path, const std::string &
     crypto_secretstream_xchacha20poly1305_init_push(&state, header.data(), key.data());
     crypto_secretstream_xchacha20poly1305_push(&state, ciphertext.data(), NULL, plaintext_bytes.data(), plaintext_bytes.size(), NULL,0,crypto_secretstream_xchacha20poly1305_TAG_FINAL);
 
-    std::cout << "password " << QByteArray((const char *)key.data(), key.size()).toBase64().toStdString() << std::endl;
-    std::cout << "header " << QByteArray((const char *)header.data(), header.size()).toBase64().toStdString() << std::endl;
-    std::cout << "ciphertext " << QByteArray((const char *)ciphertext.data(), ciphertext.size()).toBase64().toStdString() << std::endl;
 
     //save to file
     QFile file(path.c_str());
@@ -90,9 +87,6 @@ static std::string read_encrypted_file(const std::string & path, const std::stri
     std::vector<unsigned char> plaintext(ciphertext.size() - crypto_secretstream_xchacha20poly1305_ABYTES);
     crypto_secretstream_xchacha20poly1305_state state;
 
-    std::cout << "password " << QByteArray((const char *)key.data(), key.size()).toBase64().toStdString() << std::endl;
-    std::cout << "header " << QByteArray((const char *)header.data(), header.size()).toBase64().toStdString() << std::endl;
-    std::cout << "ciphertext " << QByteArray((const char *)ciphertext.data(), ciphertext.size()).toBase64().toStdString() << std::endl;
 
 
     if(crypto_secretstream_xchacha20poly1305_init_pull(&state, header.data(), key.data()) != 0)
