@@ -20,6 +20,8 @@ public:
     //Each UserRecord contains a set of DeviceRecords, indexed by DeviceID.
     std::map<long long int, Device*> devices;
     Device * current_device;
+    std::string username;
+    std::string password;
 
     User();
 
