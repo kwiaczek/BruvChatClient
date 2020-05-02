@@ -1,6 +1,7 @@
 #include "loginwindow.h"
 #include "ui_loginwindow.h"
 #include <QMessageBox>
+#include <iostream>
 #include <QFile>
 
 LoginWindow::LoginWindow(std::shared_ptr<User> user, std::shared_ptr<QWebSocket> websocket, QWidget *parent):
@@ -104,7 +105,6 @@ void LoginWindow::bruvLogin()
 void LoginWindow::handleBruvLoginMsg(QString msg)
 {
     m_websocket->disconnect();
-
     QJsonDocument server_response = QJsonDocument::fromJson(msg.toUtf8());
 
     if(server_response["type"] == "loginwithnodata_accepted")
@@ -113,6 +113,7 @@ void LoginWindow::handleBruvLoginMsg(QString msg)
         m_user->current_device->deviceid = server_response["deviceid"].toInt();
 
         save_to_encrypted_file(("users/"+m_user->username), m_user->password, QJsonDocument(m_user->toJson(USER_PRIVATE)).toJson().toStdString());
+
         this->accept();
     }
     else if(server_response["type"] == "loginwithdata_accepted")
