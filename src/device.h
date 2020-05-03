@@ -3,6 +3,7 @@
 #include "session.h"
 #include "crypto.h"
 #include <map>
+#include <QJsonArray>
 
 
 enum {
@@ -36,6 +37,7 @@ public:
 
     QJsonObject toJson(int serialization_type);
     void parseJson(const QJsonDocument & serialized_data);
+    void parseCorrespondents(const QJsonArray & serialized_data);
 private:
     long long get_new_session_id();
 
