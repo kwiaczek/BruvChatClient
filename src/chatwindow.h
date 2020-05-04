@@ -19,8 +19,9 @@ public:
     ChatWindow(std::shared_ptr<User> user, std::shared_ptr<QWebSocket> websocket, QWidget *parent = nullptr);
     ~ChatWindow();
 private slots:
-    void addCorrespondent();
     void handleResponses(QString msg);
+    void requestUpdate();
+    void addCorrespondent();
 private:
     Ui::ChatWindow *ui;
 };

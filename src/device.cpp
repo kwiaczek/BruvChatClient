@@ -108,20 +108,27 @@ void Device::parseJson(const QJsonDocument &serialized_data)
 
     if(serialization_type == DEVICE_PRIVATE)
     {
-        parseCorrespondents(serialized_data["correspondents"].toArray());
+        QJsonArray correspondets_array = serialized_data["correspondents"].toArray();
+        for(int i = 0; i < correspondets_array.size(); i++)
+        {
+            QJsonObject correspondent_json = correspondets_array[i].toObject();
+            long long correspondet_userid = correspondent_json["userid"].toInt();
+            if(correspondents.find(correspondet_userid) == correspondents.end())
+                correspondents[correspondet_userid] = new User();
+            correspondents[correspondet_userid]->parseJson(QJsonDocument(correspondent_json));
+        }
     }
 
 }
 
-void Device::parseCorrespondents(const QJsonArray &serialized_data)
+void Device::parseJsonCorrespondents(const QJsonArray &correspondents_array)
 {
-    for(int i = 0; i < serialized_data.size(); i++)
+    for(int i =0;i < correspondents_array.size();i++)
     {
-        QJsonObject correspondent_json = serialized_data[i].toObject();
-        long long correspondet_userid = correspondent_json["userid"].toInt();
-        if(correspondents.find(correspondet_userid) == correspondents.end())
-            correspondents[correspondet_userid] = new User();
-        correspondents[correspondet_userid]->parseJson(QJsonDocument(correspondent_json));
+        long long tmp_userid = QJsonDocument(correspondents_array[i].toObject())["userid"].toInt();
+        if(correspondents.find(tmp_userid) == correspondents.end())
+            correspondents[tmp_userid] = new User();
+        correspondents[tmp_userid]->parseJson(QJsonDocument(correspondents_array[i].toObject()));
     }
 }
 

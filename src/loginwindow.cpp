@@ -113,20 +113,15 @@ void LoginWindow::handleBruvLoginMsg(QString msg)
     {
         m_user->userid = server_response["userid"].toInt();
         m_user->current_device->deviceid = server_response["deviceid"].toInt();
-        m_user->current_device->parseCorrespondents(server_response["correspondents"].toArray());
-        save_to_encrypted_file(("users/"+m_user->username), m_user->password, QJsonDocument(m_user->toJson(USER_PRIVATE)).toJson().toStdString());
-
         std::cout << QJsonDocument(m_user->toJson(USER_PRIVATE)).toJson().toStdString() << std::endl;
 
         this->accept();
     }
     else if(server_response["type"] == "loginwithdata_accepted")
     {
-        m_user->current_device->parseCorrespondents(server_response["correspondents"].toArray());
         save_to_encrypted_file(("users/"+m_user->username), m_user->password, QJsonDocument(m_user->toJson(USER_PRIVATE)).toJson().toStdString());
 
         std::cout << QJsonDocument(m_user->toJson(USER_PRIVATE)).toJson().toStdString() << std::endl;
-
         this->accept();
     }
     else if(server_response["type"] == "loginwithnodata_rejected" || server_response["type"] == "loginwithdata_rejected")
