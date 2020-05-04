@@ -2,6 +2,7 @@
 #define CHATWINDOW_H
 
 #include <QMainWindow>
+#include <QListWidget>
 #include <QtWebSockets/QtWebSockets>
 #include <memory>
 #include "user.h"
@@ -18,7 +19,12 @@ class ChatWindow : public QMainWindow
 public:
     ChatWindow(std::shared_ptr<User> user, std::shared_ptr<QWebSocket> websocket, QWidget *parent = nullptr);
     ~ChatWindow();
+private:
+    QListWidgetItem * last_selected;
+    std::map<QListWidgetItem*, long long> corresponend_list_items;
+    void createCorresponentList();
 private slots:
+    void selectCorrespondent(QListWidgetItem* item);
     void handleResponses(QString msg);
     void requestUpdate();
     void addCorrespondent();

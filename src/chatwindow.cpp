@@ -3,6 +3,7 @@
 #include <string>
 #include <QInputDialog>
 #include <QJsonObject>
+#include <QListWidget>
 #include <QMessageBox>
 
 ChatWindow::ChatWindow(std::shared_ptr<User> user, std::shared_ptr<QWebSocket> websocket,QWidget *parent)
@@ -25,15 +26,35 @@ ChatWindow::ChatWindow(std::shared_ptr<User> user, std::shared_ptr<QWebSocket> w
     connect(m_websocket.get(), &QWebSocket::textMessageReceived, this, &ChatWindow::handleResponses);
     //button add correspondent
     connect(ui->add_correspondent, SIGNAL(released()), this, SLOT(addCorrespondent()));
-
+    //correspondent list
+    connect(ui->correspondents_list, SIGNAL(itemClicked(QListWidgetItem*)), this, SLOT(selectCorrespondent(QListWidgetItem*)));
     //update correspondents and messages
     requestUpdate();
+    //nullptr means no correspondent has been selected
+    last_selected = nullptr;
 }
 
 ChatWindow::~ChatWindow()
 {
     save_to_encrypted_file(("users/"+m_user->username), m_user->password, QJsonDocument(m_user->toJson(USER_PRIVATE)).toJson().toStdString());
     delete ui;
+}
+
+void ChatWindow::createCorresponentList()
+{
+    for(auto it = m_user->current_device->correspondents.begin(); it != m_user->current_device->correspondents.end();it ++)
+    {
+        QListWidgetItem * new_item = new QListWidgetItem();
+        new_item->setText(QString::fromStdString(it->second->username));
+        corresponend_list_items[new_item] = it->first;
+        ui->correspondents_list->addItem(new_item);
+    }
+}
+
+void ChatWindow::selectCorrespondent(QListWidgetItem *item)
+{
+    last_selected = item;
+    std::cout << m_user->current_device->correspondents[corresponend_list_items[last_selected]]->username << std::endl;
 }
 
 void ChatWindow::handleResponses(QString msg)
@@ -66,6 +87,7 @@ void ChatWindow::handleResponses(QString msg)
         {
             handleResponses(QString::fromStdString(QJsonDocument(messages[i].toObject()).toJson().toStdString()));
         }
+        createCorresponentList();
 
         std::cout << QJsonDocument(m_user->toJson(USER_PRIVATE)).toJson().toStdString() << std::endl;
     }
