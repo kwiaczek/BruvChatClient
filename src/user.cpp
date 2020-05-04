@@ -97,8 +97,8 @@ void User::parseJson(const QJsonDocument & serialized_data)
     for(int i =0; i <devices_array_json.size(); i++)
     {
         QJsonObject devices_json_obj = devices_array_json[i].toObject();
-        devices[devices_json_obj["index"].toInt()] = new Device();
-        devices[devices_json_obj["index"].toInt()]->parseJson(QJsonDocument(devices_json_obj["device"].toObject()));
+        devices[devices_json_obj["deviceid"].toInt()] = new Device();
+        devices[devices_json_obj["deviceid"].toInt()]->parseJson(QJsonDocument(devices_json_obj));
     }
 }
 
