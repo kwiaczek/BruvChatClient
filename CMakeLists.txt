@@ -40,6 +40,7 @@ src/message.cpp
 src/loginwindow.ui
 src/loginwindow.cpp
 src/loginwindow.h
+src/messageui.h
 )
 
 target_link_libraries(BruvChatClient2 PRIVATE Qt5::Widgets Qt5::WebSockets libsodium)

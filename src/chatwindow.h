@@ -28,6 +28,7 @@ private slots:
     void handleResponses(QString msg);
     void requestUpdate();
     void addCorrespondent();
+    void sendMessage();
 private:
     Ui::ChatWindow *ui;
 };

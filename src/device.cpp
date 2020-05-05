@@ -102,6 +102,7 @@ void Device::parseJson(const QJsonDocument &serialized_data)
         for(int i = 0; i < sessions_array_json.size(); i++)
         {
             QJsonObject session_json = sessions_array_json[i].toObject();
+            sessions[session_json["sessionid"].toInt()] = new Session();
             sessions[session_json["sessionid"].toInt()]->parseJson(QJsonDocument(session_json));
         }
     }

@@ -9,6 +9,7 @@
 #include "message.h"
 #include "loginwindow.h"
 #include "chatwindow.h"
+#include "MessageUI.h"
 #include <QDialog>
 int main(int argc, char *argv[])
 {
@@ -33,7 +34,6 @@ int main(int argc, char *argv[])
 
     std::shared_ptr<User> user = std::make_shared<User>();
     std::shared_ptr<QWebSocket> websocket = std::make_shared<QWebSocket>();
-
 
     LoginWindow loginWindow(user, websocket);
     if( loginWindow.exec() != QDialog::Accepted)

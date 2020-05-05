@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QListWidget>
 #include <QMessageBox>
+#include <QColor>
 
 ChatWindow::ChatWindow(std::shared_ptr<User> user, std::shared_ptr<QWebSocket> websocket,QWidget *parent)
     : QMainWindow(parent)
@@ -32,6 +33,8 @@ ChatWindow::ChatWindow(std::shared_ptr<User> user, std::shared_ptr<QWebSocket> w
     requestUpdate();
     //nullptr means no correspondent has been selected
     last_selected = nullptr;
+    //send button
+    connect(ui->sendtext_button, SIGNAL(released()), this, SLOT(sendMessage()));
 }
 
 ChatWindow::~ChatWindow()
@@ -42,6 +45,7 @@ ChatWindow::~ChatWindow()
 
 void ChatWindow::createCorresponentList()
 {
+    ui->correspondents_list->clear();
     for(auto it = m_user->current_device->correspondents.begin(); it != m_user->current_device->correspondents.end();it ++)
     {
         QListWidgetItem * new_item = new QListWidgetItem();
@@ -53,8 +57,18 @@ void ChatWindow::createCorresponentList()
 
 void ChatWindow::selectCorrespondent(QListWidgetItem *item)
 {
+    //ui
+    ui->chatText->clear();
+    if(last_selected != nullptr)
+        last_selected->setBackground(Qt::white);
+    item->setBackground(Qt::lightGray);
+    //set last selected
     last_selected = item;
-    std::cout << m_user->current_device->correspondents[corresponend_list_items[last_selected]]->username << std::endl;
+    //fill text chat
+    for(int i = 0;i < m_user->current_device->correspondents[corresponend_list_items[last_selected]]->messages_ui.size();i++)
+    {
+        ui->chatText->setText(ui->chatText->toHtml() + m_user->current_device->correspondents[corresponend_list_items[last_selected]]->messages_ui[i].format());
+    }
 }
 
 void ChatWindow::handleResponses(QString msg)
@@ -82,14 +96,18 @@ void ChatWindow::handleResponses(QString msg)
     else if(server_response["type"] == "request_update")
     {
         m_user->current_device->parseJsonCorrespondents(server_response["correspondents"].toArray());
+        std::cout << QJsonDocument(m_user->toJson(USER_PRIVATE)).toJson().toStdString() << std::endl;
+        createCorresponentList();
         QJsonArray messages = server_response["messages"].toArray();
         for(int i= 0; i < messages.size(); i++)
         {
             handleResponses(QString::fromStdString(QJsonDocument(messages[i].toObject()).toJson().toStdString()));
         }
-        createCorresponentList();
 
-        std::cout << QJsonDocument(m_user->toJson(USER_PRIVATE)).toJson().toStdString() << std::endl;
+    }
+    else if(server_response["type"] == "encrypted_message")
+    {
+        m_user->decrypt_message(server_response);
     }
 }
 
@@ -118,5 +136,24 @@ void ChatWindow::addCorrespondent()
     {
         m_websocket->sendTextMessage(QString::fromStdString(QJsonDocument(add_correspondent_json).toJson().toStdString()));
     }
+}
+
+void ChatWindow::sendMessage()
+{
+    if(last_selected == nullptr)
+        return;
+
+    //retrive message from ui
+    std::string text_to_be_send = ui->sendtext_text->text().toStdString();
+
+    //store message
+    MessageUI new_message("You", text_to_be_send);
+    m_user->current_device->correspondents[corresponend_list_items[last_selected]]->messages_ui.push_back(new_message);
+
+    ui->chatText->setText(ui->chatText->toHtml() + new_message.format());
+
+    ui->sendtext_text->clear();
+
+    m_websocket->sendTextMessage(QString::fromStdString(QJsonDocument(m_user->encrypt_message(corresponend_list_items[last_selected], text_to_be_send)).toJson().toStdString()));
 }
 

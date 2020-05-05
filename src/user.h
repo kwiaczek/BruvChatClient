@@ -2,6 +2,7 @@
 #define USER_H
 
 #include "device.h"
+#include "MessageUI.h"
 #include <map>
 #include <QJsonArray>
 
@@ -23,10 +24,12 @@ public:
     std::string username;
     std::string password;
 
+    std::vector<MessageUI> messages_ui;
+
     User();
 
-    QJsonArray encrypt_message(long long receiver_userid, const std::string & plaintext);
-    std::string decrypt_message(const QJsonDocument & encrypted_message);
+    QJsonObject encrypt_message(long long receiver_userid, const std::string & plaintext);
+    void decrypt_message(const QJsonDocument & encrypted_message);
 
     QJsonObject toJson(int serialization_type);
     void parseJson(const QJsonDocument & serialized_data);
