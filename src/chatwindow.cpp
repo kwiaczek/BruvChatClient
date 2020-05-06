@@ -32,7 +32,7 @@ ChatWindow::ChatWindow(std::shared_ptr<User> user, std::shared_ptr<QWebSocket> w
     //update correspondents and messages
     requestUpdate();
     //nullptr means no correspondent has been selected
-    last_selected = nullptr;
+    last_selected_userid = -1;
     //send button
     connect(ui->sendtext_button, SIGNAL(released()), this, SLOT(sendMessage()));
 }
@@ -50,7 +50,6 @@ void ChatWindow::createCorresponentList()
     {
         QListWidgetItem * new_item = new QListWidgetItem();
         new_item->setText(QString::fromStdString(it->second->username));
-        corresponend_list_items[new_item] = it->first;
         ui->correspondents_list->addItem(new_item);
     }
 }
@@ -59,16 +58,13 @@ void ChatWindow::selectCorrespondent(QListWidgetItem *item)
 {
     //ui
     ui->chatText->clear();
-    if(last_selected != nullptr)
-        last_selected->setBackground(Qt::white);
-    item->setBackground(Qt::lightGray);
-    //set last selected
-    last_selected = item;
-    //fill text chat
-    for(int i = 0;i < m_user->current_device->correspondents[corresponend_list_items[last_selected]]->messages_ui.size();i++)
+    //select
+    long long selected_userid = getUseridByUsername(item->text().toStdString());
+    for(int i = 0;i < m_user->current_device->correspondents[selected_userid]->messages_ui.size();i++)
     {
-        ui->chatText->setText(ui->chatText->toHtml() + m_user->current_device->correspondents[corresponend_list_items[last_selected]]->messages_ui[i].format());
+        ui->chatText->setText(ui->chatText->toHtml() + m_user->current_device->correspondents[selected_userid]->messages_ui[i].format());
     }
+    last_selected_userid = selected_userid;
 }
 
 void ChatWindow::handleResponses(QString msg)
@@ -107,7 +103,11 @@ void ChatWindow::handleResponses(QString msg)
     }
     else if(server_response["type"] == "encrypted_message")
     {
-        m_user->decrypt_message(server_response);
+        MessageUI new_message = m_user->decrypt_message(server_response);
+        if(last_selected_userid == getUseridByUsername(new_message.from))
+        {
+            ui->chatText->setText(ui->chatText->toHtml() + new_message.format());
+        }
     }
 }
 
@@ -140,7 +140,7 @@ void ChatWindow::addCorrespondent()
 
 void ChatWindow::sendMessage()
 {
-    if(last_selected == nullptr)
+    if(last_selected_userid == -1)
         return;
 
     //retrive message from ui
@@ -148,12 +148,23 @@ void ChatWindow::sendMessage()
 
     //store message
     MessageUI new_message("You", text_to_be_send);
-    m_user->current_device->correspondents[corresponend_list_items[last_selected]]->messages_ui.push_back(new_message);
+    m_user->current_device->correspondents[last_selected_userid]->messages_ui.push_back(new_message);
 
     ui->chatText->setText(ui->chatText->toHtml() + new_message.format());
 
     ui->sendtext_text->clear();
 
-    m_websocket->sendTextMessage(QString::fromStdString(QJsonDocument(m_user->encrypt_message(corresponend_list_items[last_selected], text_to_be_send)).toJson().toStdString()));
+    m_websocket->sendTextMessage(QString::fromStdString(QJsonDocument(m_user->encrypt_message(last_selected_userid, text_to_be_send)).toJson().toStdString()));
+}
+
+long long ChatWindow::getUseridByUsername(const std::string &username)
+{
+    for(auto it = m_user->current_device->correspondents.begin();it != m_user->current_device->correspondents.end(); it++)
+    {
+        if(it->second->username == username)
+        {
+            return it->first;
+        }
+    }
 }
 

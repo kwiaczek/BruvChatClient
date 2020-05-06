@@ -20,8 +20,6 @@ public:
     ChatWindow(std::shared_ptr<User> user, std::shared_ptr<QWebSocket> websocket, QWidget *parent = nullptr);
     ~ChatWindow();
 private:
-    QListWidgetItem * last_selected;
-    std::map<QListWidgetItem*, long long> corresponend_list_items;
     void createCorresponentList();
 private slots:
     void selectCorrespondent(QListWidgetItem* item);
@@ -30,6 +28,8 @@ private slots:
     void addCorrespondent();
     void sendMessage();
 private:
+    long long last_selected_userid;
+    long long getUseridByUsername(const std::string & username);
     Ui::ChatWindow *ui;
 };
 #endif // CHATWINDOW_H

@@ -29,7 +29,7 @@ public:
     User();
 
     QJsonObject encrypt_message(long long receiver_userid, const std::string & plaintext);
-    void decrypt_message(const QJsonDocument & encrypted_message);
+    MessageUI decrypt_message(const QJsonDocument & encrypted_message);
 
     QJsonObject toJson(int serialization_type);
     void parseJson(const QJsonDocument & serialized_data);

@@ -49,7 +49,7 @@ QJsonObject User::encrypt_message(long long receiver_userid, const std::string &
     return send_message_json;
 }
 
-void User::decrypt_message(const QJsonDocument &encrypted_message)
+MessageUI User::decrypt_message(const QJsonDocument &encrypted_message)
 {
     QString type = encrypted_message["encrypted_type"].toString();
     long long sender_deviceid = QJsonDocument(encrypted_message["device"].toObject())["sender_deviceid"].toInt();
@@ -63,6 +63,7 @@ void User::decrypt_message(const QJsonDocument &encrypted_message)
 
         MessageUI new_message(current_device->correspondents[sender_userid]->username, plaintext);
         current_device->correspondents[sender_userid]->messages_ui.push_back(new_message);
+        return new_message;
     }
     else if(type == "internal")
     {
@@ -71,6 +72,7 @@ void User::decrypt_message(const QJsonDocument &encrypted_message)
 
         MessageUI new_message("You", plaintext);
         current_device->correspondents[sender_userid]->messages_ui.push_back(new_message);
+        return new_message;
     }
 }
 
