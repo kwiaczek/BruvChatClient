@@ -28,6 +28,7 @@ private slots:
     void addCorrespondent();
     void sendMessage();
 private:
+    void insertChatText();
     long long last_selected_userid;
     long long getUseridByUsername(const std::string & username);
     Ui::ChatWindow *ui;

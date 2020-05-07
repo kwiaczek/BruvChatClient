@@ -60,11 +60,8 @@ void ChatWindow::selectCorrespondent(QListWidgetItem *item)
     ui->chatText->clear();
     //select
     long long selected_userid = getUseridByUsername(item->text().toStdString());
-    for(int i = 0;i < m_user->current_device->correspondents[selected_userid]->messages_ui.size();i++)
-    {
-        ui->chatText->setText(ui->chatText->toHtml() + m_user->current_device->correspondents[selected_userid]->messages_ui[i].format());
-    }
     last_selected_userid = selected_userid;
+    insertChatText();
 }
 
 void ChatWindow::handleResponses(QString msg)
@@ -92,13 +89,13 @@ void ChatWindow::handleResponses(QString msg)
     else if(server_response["type"] == "request_update")
     {
         m_user->current_device->parseJsonCorrespondents(server_response["correspondents"].toArray());
-        std::cout << QJsonDocument(m_user->toJson(USER_PRIVATE)).toJson().toStdString() << std::endl;
         createCorresponentList();
         QJsonArray messages = server_response["messages"].toArray();
         for(int i= 0; i < messages.size(); i++)
         {
             handleResponses(QString::fromStdString(QJsonDocument(messages[i].toObject()).toJson().toStdString()));
         }
+        insertChatText();
 
     }
     else if(server_response["type"] == "encrypted_message")
@@ -108,6 +105,7 @@ void ChatWindow::handleResponses(QString msg)
         {
             ui->chatText->setText(ui->chatText->toHtml() + new_message.format());
         }
+        insertChatText();
     }
 }
 
@@ -146,15 +144,24 @@ void ChatWindow::sendMessage()
     //retrive message from ui
     std::string text_to_be_send = ui->sendtext_text->text().toStdString();
 
-    //store message
-    MessageUI new_message("You", text_to_be_send);
-    m_user->current_device->correspondents[last_selected_userid]->messages_ui.push_back(new_message);
-
-    ui->chatText->setText(ui->chatText->toHtml() + new_message.format());
+    insertChatText();
 
     ui->sendtext_text->clear();
 
     m_websocket->sendTextMessage(QString::fromStdString(QJsonDocument(m_user->encrypt_message(last_selected_userid, text_to_be_send)).toJson().toStdString()));
+}
+
+void ChatWindow::insertChatText()
+{
+    ui->chatText->clear();
+    if(last_selected_userid != -1)
+    {
+
+        for(int i = 0;i < m_user->current_device->correspondents[last_selected_userid]->messages_ui.size();i++)
+        {
+            ui->chatText->setText(ui->chatText->toHtml() + m_user->current_device->correspondents[last_selected_userid]->messages_ui[i].format());
+        }
+    }
 }
 
 long long ChatWindow::getUseridByUsername(const std::string &username)

@@ -9,7 +9,19 @@ struct MessageUI{
     std::string message;
     MessageUI(std::string _from, std::string _message)
     {
-        from = _from;
+        if(_from == "You")
+        {
+            from = "<font color=\"Blue\"><b>";
+            from += _from;
+            from += "</b></font>";
+        }
+        else
+        {
+            from = "<font color=\"Red\"><b>";
+            from += _from;
+            from += "</b></font>";
+        }
+
         message = _message;
     }
     QString format()
