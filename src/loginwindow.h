@@ -25,6 +25,7 @@ private slots:
     void bruvLogin();
     void handleBruvLoginMsg(QString msg);
     void handleBruvRegisterMsg(QString msg);
+    void onSslErrors(const QList<QSslError> &errors);
 private:
     Ui::LoginWindow *ui;
 };

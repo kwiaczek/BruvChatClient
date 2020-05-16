@@ -13,7 +13,9 @@ LoginWindow::LoginWindow(std::shared_ptr<User> user, std::shared_ptr<QWebSocket>
     m_websocket = websocket;
 
     connect(m_websocket.get(),&QWebSocket::connected, this, & LoginWindow::onConnected);
-    m_websocket->open(QUrl("ws://localhost:9300"));
+    connect(m_websocket.get(), QOverload<const QList<QSslError>&>::of(&QWebSocket::sslErrors),
+                        this, &LoginWindow::onSslErrors);
+    m_websocket->open(QUrl("wss://localhost:9300"));
 }
 
 LoginWindow::~LoginWindow()
@@ -23,6 +25,8 @@ LoginWindow::~LoginWindow()
 
 void LoginWindow::onConnected()
 {
+    std::cout << "Connected!" << std::endl;
+
     connect(ui->sign_in_button, SIGNAL(released()), this, SLOT(bruvLogin()));
     connect(ui->sign_up_button, SIGNAL(released()), this, SLOT(bruvRegister()));
 }
@@ -139,4 +143,10 @@ void LoginWindow::handleBruvRegisterMsg(QString msg)
     {
         QMessageBox::critical(this, "Rejestracja", "Rejestracja zakończyła się niepowodzeniem!");
     }
+}
+
+void LoginWindow::onSslErrors(const QList<QSslError> &errors)
+{
+    //ALLOW SELF-SIGNED CERTIFICATE
+    m_websocket->ignoreSslErrors();
 }
